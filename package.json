@@ -8,9 +8,10 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
     "seed": "node --import tsx scripts/seed.ts",
-    "test": "node --import tsx scripts/integration.ts",
+    "test": "node --import tsx scripts/database-checks.ts && node --import tsx scripts/integration.ts",
     "test:dev": "node --import tsx scripts/integration.ts --dev",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:db": "node --import tsx scripts/database-checks.ts"
   },
   "repository": {
     "type": "git",
