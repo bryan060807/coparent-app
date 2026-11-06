@@ -58,7 +58,10 @@ CREATE TABLE IF NOT EXISTS papers(id TEXT PRIMARY KEY, household TEXT NOT NULL R
 CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY,paper TEXT NOT NULL REFERENCES papers(id),actor TEXT NOT NULL REFERENCES users(id),action TEXT NOT NULL,note TEXT NOT NULL DEFAULT '',at TEXT NOT NULL,UNIQUE(paper,action));
 CREATE TABLE IF NOT EXISTS pickups(id TEXT PRIMARY KEY,household TEXT NOT NULL REFERENCES households(id),title TEXT NOT NULL,scheduled_at TEXT NOT NULL,location TEXT NOT NULL,assignee TEXT NOT NULL REFERENCES users(id),note TEXT NOT NULL DEFAULT '',status TEXT NOT NULL CHECK(status IN ('scheduled','completed','cancelled')),version INTEGER NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS pickups_household_time ON pickups(household,scheduled_at);
-CREATE TABLE IF NOT EXISTS pickup_events(id INTEGER PRIMARY KEY,pickup TEXT NOT NULL REFERENCES pickups(id),actor TEXT NOT NULL REFERENCES users(id),action TEXT NOT NULL,at TEXT NOT NULL,snapshot TEXT NOT NULL,request_key TEXT NOT NULL,version INTEGER NOT NULL,UNIQUE(actor,request_key),UNIQUE(pickup,version));`);
+CREATE TABLE IF NOT EXISTS pickup_events(id INTEGER PRIMARY KEY,pickup TEXT NOT NULL REFERENCES pickups(id),actor TEXT NOT NULL REFERENCES users(id),action TEXT NOT NULL,at TEXT NOT NULL,snapshot TEXT NOT NULL,request_key TEXT NOT NULL,version INTEGER NOT NULL,UNIQUE(actor,request_key),UNIQUE(pickup,version));
+CREATE TABLE IF NOT EXISTS homework(id TEXT PRIMARY KEY,household TEXT NOT NULL REFERENCES households(id),title TEXT NOT NULL,due TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('not_started','in_progress','done')),note TEXT NOT NULL DEFAULT '',version INTEGER NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS homework_household_due ON homework(household,due);
+CREATE TABLE IF NOT EXISTS homework_events(id INTEGER PRIMARY KEY,homework TEXT NOT NULL REFERENCES homework(id),actor TEXT NOT NULL REFERENCES users(id),action TEXT NOT NULL,at TEXT NOT NULL,snapshot TEXT NOT NULL,request_key TEXT NOT NULL,version INTEGER NOT NULL,UNIQUE(actor,request_key),UNIQUE(homework,version));`);
     connection.exec("COMMIT");
     connections.set(filename, connection);
     return connection;

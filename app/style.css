@@ -404,3 +404,92 @@ nav button {
 .pickup-summary .text {
   white-space: nowrap;
 }
+
+.homework-summary {
+  border: 1px solid #d4decd;
+  border-radius: 16px;
+  padding: 16px;
+  margin: 20px 0 24px;
+  background: #fff;
+}
+.homework-summary h2 {
+  margin: 0;
+}
+.homework-summary > .cardtop {
+  gap: 8px;
+}
+.homework-summary .text {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.homework-mini-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+.homework-mini {
+  display: grid;
+  gap: 7px;
+  background: #f0f3e9;
+  color: #263e38;
+  text-align: left;
+  padding: 15px;
+  overflow-wrap: anywhere;
+}
+.homework-mini span {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.homework-actions {
+  display: grid;
+  gap: 12px;
+}
+.homework-filters {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+}
+.homework-filters button {
+  flex: 1;
+}
+.homework-planner .note {
+  margin-top: 20px;
+}
+.homework-planner form {
+  margin-bottom: 24px;
+}
+.homework-planner .card,
+.homework-planner .timeline {
+  overflow-wrap: anywhere;
+}
+.badge.in_progress {
+  background: #deebe8;
+  color: #266559;
+}
+.badge.done {
+  background: #e2ead7;
+  color: #4d682e;
+}
+.household-nav {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+.household-nav button {
+  min-width: 0;
+  padding: 12px 6px;
+}
+@media (max-width: 480px) {
+  .household-nav button {
+    font-size: 14px;
+  }
+}
+@media (max-width: 360px) {
+  .household-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .household-nav button {
+    font-size: 16px;
+  }
+}

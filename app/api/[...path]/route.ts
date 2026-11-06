@@ -4,6 +4,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { writeFileSync, readFileSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import { getPickups, savePickup } from "../../../lib/pickups";
+import { getHomework, saveHomework } from "../../../lib/homework";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const json = (v: unknown, status = 200) =>
@@ -31,6 +32,7 @@ export async function GET(req: NextRequest) {
   if (!u) return json({ error: "Please sign in." }, 401);
   const parts = req.nextUrl.pathname.split("/").slice(2);
   if (parts[0] === "pickups") return getPickups(parts, u);
+  if (parts[0] === "homework") return getHomework(parts, u);
   if (parts[0] === "me")
     return json({ user: { id: u.id, name: u.name }, members: members(u) });
   if (parts[0] === "papers" && !parts[1])
@@ -133,6 +135,7 @@ export async function POST(req: NextRequest) {
     return res;
   }
   if (parts[0] === "pickups") return savePickup(req, parts, u);
+  if (parts[0] === "homework") return saveHomework(req, parts, u);
   if (parts[0] !== "papers") return json({ error: "Not found" }, 404);
   if (!parts[1]) {
     if (Number(req.headers.get("content-length") || 0) > 11 * 1024 * 1024)

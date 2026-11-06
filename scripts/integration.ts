@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { checkPickupApi, checkPickupBrowsers } from "./pickup-checks";
+import { checkHomeworkApi, checkHomeworkBrowsers } from "./homework-checks";
 import { chromium, expect } from "@playwright/test";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { networkInterfaces, tmpdir } from "node:os";
@@ -326,6 +327,7 @@ try {
     403,
   );
   const persistedPickup = await checkPickupApi(base, a, b, c);
+  const persistedHomework = await checkHomeworkApi(base, a, b, c);
   await stop();
   start();
   await ready();
@@ -334,6 +336,14 @@ try {
       headers: { cookie: b },
     })
   ).json();
+  const restoredHomework = await (
+    await fetch(base + "/api/homework/" + persistedHomework.id, {
+      headers: { cookie: b },
+    })
+  ).json();
+  assert.equal(restoredHomework.status, "done");
+  assert.equal(restoredHomework.events.length, persistedHomework.events);
+  assert.equal(restoredHomework.note, "Finished and checked.");
   assert.equal(restoredPickup.status, "completed");
   assert.equal(restoredPickup.events.length, 3);
   assert.equal(restoredPickup.scheduled_at, persistedPickup.scheduled_at);
@@ -489,6 +499,7 @@ try {
       `PASS (${development ? "development" : "production"}): browser sign-in at localhost and loopback IP${localIp ? ", simulated LAN Host/Origin" : ""}; sessions survive reload, full handoff syncs, sign-out revokes session, cross-origin requests rejected.`,
     );
     await checkPickupBrowsers(browser, base, parentBBase);
+    await checkHomeworkBrowsers(browser, base, parentBBase);
   } finally {
     await browser.close();
   }

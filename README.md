@@ -1,6 +1,6 @@
 # Two Homes
 
-A private, mobile-first app for school-paper handoffs and shared pickup plans for a fictional six-year-old, Casey Willow. Built with Next.js, TypeScript, and SQLite (Node's built-in `node:sqlite`). No external services or API keys are needed. Recurring schedules, homework, notifications, OCR, and deployment remain out of scope.
+A private, mobile-first app for school papers, shared pickup plans, and homework for a fictional six-year-old, Casey Willow. Built with Next.js, TypeScript, and SQLite (Node's built-in `node:sqlite`). No external services or API keys are needed. Recurring schedules, notifications, OCR, a combined household timeline, and deployment remain out of scope.
 
 ## Install and launch
 
@@ -46,6 +46,16 @@ These are individual pickups, not a repeating custody calendar. Upcoming lists s
 
 Existing installations need only pull the update and restart `npm run dev`. New pickup tables are created automatically without deleting accounts, school papers, or attachments. No new seed/reset command is required; a new household starts with no pickups.
 
+## Homework walkthrough
+
+1. Alex: **Homework → Add homework**. Enter **Reading and math sheet**, a due date, and the optional note **Math sheet is in the blue folder**. Both parents see it as **Not started**; unfinished assignments also appear on Today, overdue and soonest-due first.
+2. Sam: open the assignment from Today. Enter **Reading finished; math sheet is in the blue folder**, then choose **Start homework**. The status becomes **In progress** and Alex sees the note without refreshing.
+3. Either parent can **Save handoff note** without changing progress, or **Edit assignment** to change its title, due date, and note. Unsaved drafts stay intact if the other parent changes the assignment; review the latest information before replacing a draft. Notes are limited to 500 characters; assignment titles to 160.
+4. When the work is finished, enter a final note and choose **Mark done**. It leaves Today and To do, but remains under **Completed homework** with the named, timestamped activity and earlier notes. Done is final in this version: stale screens cannot reopen or change a finished assignment. Progress moves from Not started to In progress to Done.
+5. Jordan's household cannot list, open, update, or read the activity of Willow homework, including known `/api/homework/{id}` and `/api/homework/{id}/timeline` URLs. Anonymous API requests require sign-in too.
+
+Due dates are date-only values: switching time zones does not shift an assignment to a different due date. Work and notes sync about every three seconds. As with pickups, the new tables are added automatically on restart; existing accounts, papers, pickups, and attachments are retained. No reseeding or new dependency installation is needed for an existing checkout.
+
 ## Verification
 
 ```sh
@@ -65,6 +75,8 @@ Coverage includes two independent authenticated browser contexts at a 390px phon
 
 Pickup checks also cover create/edit/reassignment/completion/cancellation, automatic Today updates, Chicago/Denver time-zone conversion, stale draft preservation, immutable final states, idempotent retries, concurrent updates, chronological ordering, household boundaries on direct pickup/activity URLs, and pickup persistence alongside existing school papers after restart.
 
+Homework checks cover assignment creation, edited due dates, shared notes, all three progress states, automatic Today updates, completed history, invalid dates and note lengths, duplicate/concurrent requests, stale draft preservation, date-only behavior in Chicago/Denver, household and anonymous isolation, restart persistence, and navigation at 320px and 390px widths. The school-paper, pickup, and database-lock regressions continue to run.
+
 Authentication regressions cover browser sign-in at localhost and `127.0.0.1`, session cookies surviving reload, sign-out, the actual request port, simulated LAN Host/Origin headers, and rejection of different origins, ports, schemes, and spoofed forwarded hosts. Development tests also verify that local-IP dev assets are allowed while external origins remain blocked. Physical-phone access still requires a reachable Windows host; these tests do not establish phone connectivity.
 
 Before sign-in, a 401 response from `/api/me` is expected. Repeated 403 responses from `/api/login` are not: update the app and restart the dev server. When using local HTTP, leave `COOKIE_SECURE` unset or `false`; `true` requires HTTPS and can prevent the browser from retaining its session on an HTTP address. Seeding again is safe and does not remove papers or uploads.
@@ -79,6 +91,7 @@ Physical-phone camera/file-picker behavior, iOS/Android PDF viewing, keyboard la
 - Every API request authenticates the session; every individual paper, timeline, attachment, and mutation query verifies household membership server-side. The actor comes exclusively from the session. Parents may sign or return a paper within their own household; the assignee indicates responsibility, not exclusive permission.
 - SQLite transactions and a unique event constraint prevent duplicate status events. Returned is final. Returning an unsigned paper is rejected. Retried creation uses an idempotency key. No public attachment routes exist.
 - Pickups and their activity are in the same private SQLite database. Every pickup mutation requires a version and an idempotency key (creation needs only the key). Conflicts return 409 rather than silently replacing another parent's edits. Activity attributes changes to the signed-in parent and retains the plan details at each revision.
+- Homework uses the same version checks, idempotency keys, server-owned actor identity, and household membership checks. Assignment and note edits preserve their earlier snapshots in private activity records. Finished assignments cannot move backward or be edited by stale clients.
 - Uploads are limited to 10 MiB, with a bounded multipart request, MIME and file-signature checks. Originals are served with private/no-store caching, nosniff and sandbox headers. This is format validation, not antivirus scanning.
 - Session cookies are HTTP-only, SameSite Strict, and expire after seven days. Mutations reject cross-origin requests. Local HTTP works by default; set `COOKIE_SECURE=true` when running behind HTTPS. Seed credentials and local HTTP are for development. Public deployment and production identity onboarding are separate future work.
 

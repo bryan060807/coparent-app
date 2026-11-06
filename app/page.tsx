@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import PickupPlanner, { NextPickup } from "./pickups";
+import HomeworkPlanner, { HomeworkToday } from "./homework";
 type Member = { id: string; name: string };
 type Paper = {
   id: string;
@@ -33,9 +34,10 @@ export default function Home() {
     [members, setMembers] = useState<Member[]>([]),
     [loading, setLoading] = useState(true),
     [papers, setPapers] = useState<Paper[]>([]),
-    [view, setView] = useState<"today" | "history" | "add" | "pickups">(
-      "today",
-    ),
+    [view, setView] = useState<
+      "today" | "history" | "add" | "pickups" | "homework"
+    >("today"),
+    [homeworkId, setHomeworkId] = useState<string | undefined>(),
     [selected, setSelected] = useState<Paper | null>(null),
     [error, setError] = useState(""),
     [syncError, setSyncError] = useState(""),
@@ -339,7 +341,7 @@ export default function Home() {
         </>
       ) : (
         <>
-          <nav aria-label="Household">
+          <nav aria-label="Household" className="household-nav">
             <button
               className={view === "today" ? "active" : "text"}
               onClick={() => {
@@ -360,6 +362,17 @@ export default function Home() {
               Pickups
             </button>
             <button
+              className={view === "homework" ? "active" : "text"}
+              onClick={() => {
+                setView("homework");
+                setHomeworkId(undefined);
+                setError("");
+                setNotice("");
+              }}
+            >
+              Homework
+            </button>
+            <button
               className={view === "history" ? "active" : "text"}
               onClick={() => {
                 setView("history");
@@ -369,7 +382,12 @@ export default function Home() {
               Paper history
             </button>
           </nav>
-          {view === "pickups" ? (
+          {view === "homework" ? (
+            <HomeworkPlanner
+              key={homeworkId ?? "list"}
+              initialId={homeworkId}
+            />
+          ) : view === "pickups" ? (
             <PickupPlanner members={members} me={me} />
           ) : view === "add" ? (
             <>
@@ -442,14 +460,6 @@ export default function Home() {
                   : "Returned to school. Kept here for peace of mind."}
               </p>
               {view === "today" && (
-                <NextPickup
-                  onOpen={() => {
-                    setView("pickups");
-                    setNotice("");
-                  }}
-                />
-              )}
-              {view === "today" && (
                 <button
                   onClick={() => {
                     setView("add");
@@ -465,6 +475,23 @@ export default function Home() {
                 >
                   ＋ Add school paper
                 </button>
+              )}
+              {view === "today" && (
+                <NextPickup
+                  onOpen={() => {
+                    setView("pickups");
+                    setNotice("");
+                  }}
+                />
+              )}
+              {view === "today" && (
+                <HomeworkToday
+                  onOpen={(id) => {
+                    setHomeworkId(id);
+                    setView("homework");
+                    setNotice("");
+                  }}
+                />
               )}
               {list.length === 0 ? (
                 <section className="empty">
