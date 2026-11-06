@@ -68,9 +68,21 @@ export async function GET(req: NextRequest) {
 }
 export async function POST(req: NextRequest) {
   // Same-origin browser requests only, including login, to prevent cookie-based CSRF.
+  // Next builds nextUrl from the bind address (0.0.0.0), which is not the
+  // browser's origin. Use the actual Host, including its port, instead.
   const origin = req.headers.get("origin");
-  if (origin && origin !== req.nextUrl.origin)
-    return json({ error: "Invalid request origin." }, 403);
+  if (origin) {
+    const host = req.headers.get("host");
+    let expectedOrigin: string | undefined;
+    try {
+      if (host)
+        expectedOrigin = new URL(`${req.nextUrl.protocol}//${host}`).origin;
+    } catch {
+      // A missing or malformed Host must not bypass the origin check.
+    }
+    if (origin !== expectedOrigin)
+      return json({ error: "Invalid request origin." }, 403);
+  }
   const parts = req.nextUrl.pathname.split("/").slice(2);
   if (parts[0] === "login") {
     let b;

@@ -12,7 +12,7 @@ npm run seed
 npm run dev
 ```
 
-The development server listens on port 3000 and all interfaces. Use your browser to open the server on your development machine. For two physical phones, both must be able to reach that machine on a trusted local network; remote cloud access is environment-specific.
+The development server listens on port 3000 and all interfaces. If 3000 is occupied, Next chooses another port (such as 3001); use the **Local** address printed in the terminal. Open `localhost` on that computer, not the `0.0.0.0` bind address. For two physical phones, both must be able to reach that machine on a trusted local network; remote cloud access is environment-specific. Next's development assets allow this computer's local interface addresses without allowing arbitrary external origins. Restart the dev server after changing networks.
 
 The seed is development-only, repeatable, and preserves existing records. It creates these fictional accounts:
 
@@ -39,13 +39,18 @@ All three use the demo password `Backpack-demo-26!`. These are local development
 npm run build
 npm run typecheck
 npm test
+npm run test:dev
 ```
 
-`npm test` requires the production build above. It starts its own server on port **3217**, seeds an isolated temporary SQLite database, runs API and browser checks, restarts the server to verify persistence, and deletes its temporary data. It never resets your development database. Ensure port 3217 is free.
+`npm test` requires the production build above. It starts its own server on port **3217**, seeds an isolated temporary SQLite database, runs API and browser checks, restarts the server to verify persistence, and deletes its temporary data. `npm run test:dev` repeats the same checks using the development server and the same `--hostname 0.0.0.0` option as `npm run dev`. Run the suites sequentially and stop your dev server before `test:dev` so its build directory is available. Neither suite resets your development database. Ensure port 3217 is free.
 
 Browser checks use the installed `/usr/bin/chromium` when available. Otherwise install Playwright's browser once with `npx playwright install chromium` (on Linux, system libraries may also be needed with `npx playwright install --with-deps chromium`). Set `CHROMIUM_PATH` to an alternative installed Chromium executable if needed. Network policy must permit the browser download if none is installed.
 
 Coverage includes two independent authenticated browser contexts at a 390px phone viewport, live cross-session updates without reload, upload errors retaining text/date fields, the full handoff/history, original PDF bytes, third-household and anonymous access to direct URLs, assignee membership, actor spoofing, invalid files/dates, oversized files, repeated uploads, concurrent duplicate signing, stale updates, CSRF rejection, and data/session/attachment persistence after restart.
+
+Authentication regressions cover browser sign-in at localhost and `127.0.0.1`, session cookies surviving reload, sign-out, the actual request port, simulated LAN Host/Origin headers, and rejection of different origins, ports, schemes, and spoofed forwarded hosts. Development tests also verify that local-IP dev assets are allowed while external origins remain blocked. Physical-phone access still requires a reachable Windows host; these tests do not establish phone connectivity.
+
+Before sign-in, a 401 response from `/api/me` is expected. Repeated 403 responses from `/api/login` are not: update the app and restart the dev server. When using local HTTP, leave `COOKIE_SECURE` unset or `false`; `true` requires HTTPS and can prevent the browser from retaining its session on an HTTP address. Seeding again is safe and does not remove papers or uploads.
 
 Physical-phone camera/file-picker behavior, iOS/Android PDF viewing, keyboard layout, and real-device network reconnects still need hands-on verification. JPEG, PNG, and PDF are supported; HEIC must be exported to JPEG. Signing records a parent's confirmation that the physical paper was signed; it does not edit or electronically sign the attachment.
 

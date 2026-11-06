@@ -1,22 +1,36 @@
 import assert from "node:assert/strict";
 import { chromium, expect } from "@playwright/test";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { networkInterfaces, tmpdir } from "node:os";
 import path from "node:path";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
+import { request as httpRequest } from "node:http";
 const dir = mkdtempSync(path.join(tmpdir(), "two-homes-test-"));
 const port = 3217,
   base = `http://localhost:${port}`;
+const development = process.argv.includes("--dev");
+const localIp = Object.values(networkInterfaces())
+  .flatMap((entries) => entries ?? [])
+  .find((entry) => entry.family === "IPv4" && !entry.internal)?.address;
+const parentBBase = `http://127.0.0.1:${port}`;
 const env: NodeJS.ProcessEnv = {
   ...process.env,
   DATA_DIR: dir,
-  NODE_ENV: "test",
+  NODE_ENV: development ? "development" : "test",
+  COOKIE_SECURE: "false",
 };
 let server: ChildProcess;
 function start() {
   server = spawn(
     "node",
-    ["node_modules/next/dist/bin/next", "start", "-p", String(port)],
+    [
+      "node_modules/next/dist/bin/next",
+      development ? "dev" : "start",
+      "--hostname",
+      "0.0.0.0",
+      "-p",
+      String(port),
+    ],
     { env, stdio: ["ignore", "pipe", "pipe"] },
   );
   server.stdout?.on("data", () => {});
@@ -43,7 +57,7 @@ async function stop() {
 async function login(email: string) {
   const r = await fetch(base + "/api/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", origin: base },
     body: JSON.stringify({ email, password: "Backpack-demo-26!" }),
   });
   assert.equal(r.status, 200);
@@ -51,6 +65,29 @@ async function login(email: string) {
 }
 function get(url: string, cookie = "") {
   return fetch(base + url, { headers: { cookie } });
+}
+// Fetch normalizes Host to the connection URL. Use HTTP directly when testing
+// a LAN Host over a loopback connection, without contacting the LAN address.
+function requestWithHost(
+  url: string,
+  headers: Record<string, string>,
+  body?: string,
+) {
+  return new Promise<number>((resolve, reject) => {
+    const req = httpRequest(
+      base + url,
+      {
+        method: body ? "POST" : "GET",
+        headers,
+      },
+      (res) => {
+        res.resume();
+        res.on("end", () => resolve(res.statusCode ?? 0));
+      },
+    );
+    req.on("error", reject);
+    req.end(body);
+  });
 }
 function update(
   id: string,
@@ -73,6 +110,45 @@ try {
   assert.equal(seed.status, 0, seed.stderr);
   start();
   await ready();
+  if (localIp) {
+    // Exercise a LAN Host/Origin over loopback: cloud egress policies can block
+    // connecting a browser directly to the worker's own non-loopback address.
+    const lanStatus = await requestWithHost(
+      "/api/login",
+      {
+        "Content-Type": "application/json",
+        host: `${localIp}:${port}`,
+        origin: `http://${localIp}:${port}`,
+      },
+      JSON.stringify({
+        email: "alex@example.test",
+        password: "Backpack-demo-26!",
+      }),
+    );
+    assert.equal(lanStatus, 200);
+  }
+  // Same-host requests must work, while other origins and spoofed forwarded
+  // headers must not turn this into an unrestricted CSRF bypass.
+  for (const origin of [
+    "https://other.example",
+    "null",
+    `http://localhost:${port + 1}`,
+    `https://localhost:${port}`,
+  ]) {
+    const rejected = await fetch(base + "/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        origin,
+        "x-forwarded-host": new URL(origin === "null" ? base : origin).host,
+      },
+      body: JSON.stringify({
+        email: "alex@example.test",
+        password: "Backpack-demo-26!",
+      }),
+    });
+    assert.equal(rejected.status, 403);
+  }
   const a = await login("alex@example.test"),
     b = await login("sam@example.test"),
     c = await login("jordan@example.test");
@@ -273,15 +349,20 @@ try {
     const pa = await ca.newPage(),
       pb = await cb.newPage(),
       pc = await cc.newPage();
-    for (const [page, email] of [
-      [pa, "alex@example.test"],
-      [pb, "sam@example.test"],
-      [pc, "jordan@example.test"],
+    for (const [page, email, address] of [
+      [pa, "alex@example.test", base],
+      [pb, "sam@example.test", parentBBase],
+      [pc, "jordan@example.test", `http://127.0.0.1:${port}`],
     ] as const) {
-      await page.goto(base);
+      await page.goto(address);
       await page.getByLabel("Email").fill(email);
       await page.getByLabel("Password").fill("Backpack-demo-26!");
       await page.getByRole("button", { name: "Sign in", exact: true }).click();
+      await expect(
+        page.getByRole("heading", { name: "Today", exact: true }),
+      ).toBeVisible();
+      // Reloading must retain the browser cookie and authenticated session.
+      await page.reload();
       await expect(
         page.getByRole("heading", { name: "Today", exact: true }),
       ).toBeVisible();
@@ -322,7 +403,7 @@ try {
       pb.getByRole("heading", { name: "Next: sign the paper" }),
     ).toBeVisible();
     const original = await cb.request.get(
-      base +
+      parentBBase +
         (await pb
           .getByRole("link", { name: "Open original attachment" })
           .getAttribute("href")),
@@ -362,6 +443,24 @@ try {
       pc.getByRole("heading", { name: "The backpack is clear" }),
     ).toBeVisible();
     await expect(pc.getByText("Museum trip permission slip")).toHaveCount(0);
+    if (development) {
+      const asset = await pa
+        .locator('script[src^="/_next/"]')
+        .first()
+        .getAttribute("src");
+      assert.ok(asset);
+      const denied = await fetch(base + asset, {
+        headers: { origin: "https://other.example" },
+      });
+      assert.equal(denied.status, 403);
+      if (localIp) {
+        const allowed = await requestWithHost(asset, {
+          host: `${localIp}:${port}`,
+          origin: `http://${localIp}:${port}`,
+        });
+        assert.equal(allowed, 200);
+      }
+    }
     assert.equal(
       await pa.evaluate(
         () => document.documentElement.scrollWidth > innerWidth,
@@ -369,8 +468,13 @@ try {
       false,
     );
     await pa.screenshot({ path: "/tmp/two-homes-history.png", fullPage: true });
+    await pa.getByRole("button", { name: "Sign out" }).click();
+    await expect(
+      pa.getByRole("button", { name: "Sign in", exact: true }),
+    ).toBeVisible();
+    assert.equal((await ca.request.get(base + "/api/me")).status(), 401);
     console.log(
-      "PASS: two independent mobile-sized browser contexts, upload retry preserves fields, live cross-session sync, Signed remains active, Returned moves to History, third household empty, no horizontal overflow.",
+      `PASS (${development ? "development" : "production"}): browser sign-in at localhost and loopback IP${localIp ? ", simulated LAN Host/Origin" : ""}; sessions survive reload, full handoff syncs, sign-out revokes session, cross-origin requests rejected.`,
     );
   } finally {
     await browser.close();
