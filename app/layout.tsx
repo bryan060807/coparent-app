@@ -1,8 +1,8 @@
 import "./style.css";
 export const metadata = {
-  title: "Two Homes · Papers, pickups & homework",
+  title: "Two Homes · Family handoffs",
   description:
-    "Shared school papers, pickup plans, and homework between two homes.",
+    "Shared plans, school work, routines, gifts, and family information between two homes.",
 };
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (

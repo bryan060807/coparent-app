@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { checkPickupApi, checkPickupBrowsers } from "./pickup-checks";
+import { checkFamilyApi, checkFamilyBrowsers } from "./family-checks";
 import { checkHomeworkApi, checkHomeworkBrowsers } from "./homework-checks";
 import { chromium, expect } from "@playwright/test";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -328,6 +329,7 @@ try {
   );
   const persistedPickup = await checkPickupApi(base, a, b, c);
   const persistedHomework = await checkHomeworkApi(base, a, b, c);
+  const familyIds = await checkFamilyApi(base, a, b, c, dir);
   await stop();
   start();
   await ready();
@@ -341,6 +343,16 @@ try {
       headers: { cookie: b },
     })
   ).json();
+  for (const kind of ["gifts", "routines", "info"] as const) {
+    const saved = await (
+      await fetch(base + "/api/family/" + kind + "/" + familyIds[kind], {
+        headers: { cookie: b },
+      })
+    ).json();
+    assert.equal(saved.record.archived, true);
+    assert.ok(saved.events.length >= 3);
+    if (kind === "routines") assert.ok(saved.checks.length >= 2);
+  }
   assert.equal(restoredHomework.status, "done");
   assert.equal(restoredHomework.events.length, persistedHomework.events);
   assert.equal(restoredHomework.note, "Finished and checked.");
@@ -455,6 +467,7 @@ try {
     await expect(
       pa.getByRole("heading", { name: "Museum trip permission slip" }),
     ).toHaveCount(0);
+    await pa.getByRole("button", { name: "More", exact: true }).click();
     await pa
       .getByRole("button", { name: "Paper history", exact: true })
       .click();
@@ -500,6 +513,7 @@ try {
     );
     await checkPickupBrowsers(browser, base, parentBBase);
     await checkHomeworkBrowsers(browser, base, parentBBase);
+    await checkFamilyBrowsers(browser, base, parentBBase);
   } finally {
     await browser.close();
   }

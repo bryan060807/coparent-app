@@ -1,6 +1,6 @@
 # Two Homes
 
-A private, mobile-first app for school papers, shared pickup plans, and homework for a fictional six-year-old, Casey Willow. Built with Next.js, TypeScript, and SQLite (Node's built-in `node:sqlite`). No external services or API keys are needed. Recurring schedules, notifications, OCR, a combined household timeline, and deployment remain out of scope.
+A private, mobile-first app for school papers, pickup plans, homework, gifts and money, routines and chores, and shared health/personal notes for a fictional six-year-old, Casey Willow. Built with Next.js, TypeScript, and SQLite (Node's built-in `node:sqlite`). No external services or API keys are needed. Repeating pickup/custody schedules, notifications, OCR, a combined household timeline, and deployment remain out of scope.
 
 ## Install and launch
 
@@ -30,7 +30,7 @@ All three use the demo password `Backpack-demo-26!`. These are local development
 2. Alex: Today → Add school paper. Enter **Field trip permission slip**, choose a due date, assign Sam, and select the sample PDF or a JPEG/PNG. Add paper.
 3. Sam: without refreshing, the paper appears within about three seconds. Open it and choose **Open original attachment**. Mark **Signed**, with the note **In the blue folder.**
 4. Both parents still see the paper on Today, labeled **Signed · return to school**. Either parent can open it and mark **Returned** once it has gone back to school.
-5. It leaves Today and appears in Paper history. Open it to see the chronological, named and timestamped Added → Signed → Returned timeline. Times display in the browser's local timezone; due dates are date-only.
+5. It leaves Today and appears under **More → Paper history**. Open it to see the chronological, named and timestamped Added → Signed → Returned timeline. Times display in the browser's local timezone; due dates are date-only.
 6. In a third isolated browser session, sign in as Jordan. The Willow papers are absent. Known paper, timeline, and attachment URLs return 404; anonymous API requests return 401.
 
 ## Shared pickups walkthrough
@@ -56,6 +56,24 @@ Existing installations need only pull the update and restart `npm run dev`. New 
 
 Due dates are date-only values: switching time zones does not shift an assignment to a different due date. Work and notes sync about every three seconds. As with pickups, the new tables are added automatically on restart; existing accounts, papers, pickups, and attachments are retained. No reseeding or new dependency installation is needed for an existing checkout.
 
+## Gifts, money, routines, and family info
+
+The compact main navigation is **Today / Pickups / Homework / More**. Under **More**, open **Gifts & money**, **Routines & chores**, **Health & personal info**, or **Paper history**. Both household parents can add and edit records. Every section syncs about every three seconds, records named activity, preserves a stale edit draft instead of overwriting a newer change, and supports **Archive record / Restore record**. Archives retain earlier details and activity; these controls do not permanently erase records.
+
+**Gifts & money:** add a Gift, Money received, or Money spent, with a title, date, giver/payee, occasion, optional note, and thank-you status. Use **Edit record** to correct any field or record a sent thank-you. Monetary amounts use USD integer cents, up to $1,000,000 per entry, avoiding floating-point rounding. The recorded cash balance is received minus spent across active money entries. Gift values are optional and excluded from cash totals; archived entries are also excluded. Negative recorded balances are allowed when the log is incomplete. These are manual records; no payments or bank connections are involved.
+
+Try Alex recording **Birthday money**, **Money received**, **Aunt Rowan**, **Birthday**, **50.00**. Sam should see $50 received without refreshing. Sam can edit it to $55 and mark the thank-you sent. Record a **Money spent** entry for **Book purchase**, **12.34**, and the recorded balance becomes **$42.66**. Archiving and restoring that purchase updates the totals accordingly.
+
+**Routines & chores:** add your own task name and choose Routine or Chore. Repeat every day or on selected weekdays, choose an optional time, write instructions, and apply it to both homes or a specific parent's home. **Today** shows scheduled tasks; **All tasks** lets you find and edit other schedules; **Archived** holds removed tasks. Checkoffs are shared between both parents and keyed by task and calendar date. They start unchecked on a new day while previous dates remain in history. Either parent can undo today's checkoff. A specific-home filter also includes tasks that apply to both homes. Today’s dashboard shows a checklist summary when there are scheduled tasks.
+
+Routine times and checkoff days use one shared time zone, initially **America/Chicago**. **Edit time zone** accepts a valid IANA name such as **America/Denver**. The displayed checklist date comes from the server in that zone, so phones in different zones still share the same daily checklist. Changing the zone changes which calendar day is current; existing history keeps its recorded dates, and activity retains the time zone used for each checkoff. A stale day, time-zone setting, task definition, or checkbox version cannot overwrite a newer checkoff. Recent checkoffs shows the latest 30 recorded dates; full named activity remains on the record.
+
+Try Alex adding **Brush teeth**, every day at **07:30**, both homes. Sam can check it off, and Alex sees the check mark automatically. Add **Put toys away** as a chore on selected weekdays, then edit its schedule, instructions, or home. All task names and instructions are user-editable; no hard-coded child routine is required.
+
+**Health & personal info:** add titled info cards in Health, Personal, Emergency contacts, School, or Other. Titles and free-form details are editable, and **Mark as important** brings a card to the top of its category/list. Use cards for allergies, medications or clinician-provided instructions, doctor and emergency contacts, birthdays, school details, clothing sizes, preferences, or any other information both homes need. Details support up to 4,000 characters and preserve line breaks. New households start empty; no medical facts are invented or seeded. Health details appear inside their household section, rather than on the Today dashboard.
+
+All three sections are household-shared. The separate Cedar account and anonymous requests cannot list, open, update, or read activity through known `/api/family/{gifts|routines|info}/{id}` URLs or their `/timeline` endpoints. An account switch in another tab clears the previous account's screen and cached section data on the next authentication poll. These notes and their history are stored as plaintext in the local SQLite database, protected by filesystem permissions and server-side account/household checks. The app remains a local development build with fictional demo credentials.
+
 ## Verification
 
 ```sh
@@ -76,6 +94,8 @@ Coverage includes two independent authenticated browser contexts at a 390px phon
 Pickup checks also cover create/edit/reassignment/completion/cancellation, automatic Today updates, Chicago/Denver time-zone conversion, stale draft preservation, immutable final states, idempotent retries, concurrent updates, chronological ordering, household boundaries on direct pickup/activity URLs, and pickup persistence alongside existing school papers after restart.
 
 Homework checks cover assignment creation, edited due dates, shared notes, all three progress states, automatic Today updates, completed history, invalid dates and note lengths, duplicate/concurrent requests, stale draft preservation, date-only behavior in Chicago/Denver, household and anonymous isolation, restart persistence, and navigation at 320px and 390px widths. The school-paper, pickup, and database-lock regressions continue to run.
+
+Family-section checks cover integer cash totals, gift value exclusion, thank-yous, archive/restore effects, custom daily/weekly chores, daily reset with preserved prior checkoffs, time-zone changes and stale checkbox protection, checkoff rollback after rejection, home filters, editable/pinned health and personal cards, conflict draft preservation, direct-URL household isolation, account-switch cache clearing, restart persistence, and the More menu at both mobile widths.
 
 Authentication regressions cover browser sign-in at localhost and `127.0.0.1`, session cookies surviving reload, sign-out, the actual request port, simulated LAN Host/Origin headers, and rejection of different origins, ports, schemes, and spoofed forwarded hosts. Development tests also verify that local-IP dev assets are allowed while external origins remain blocked. Physical-phone access still requires a reachable Windows host; these tests do not establish phone connectivity.
 

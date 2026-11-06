@@ -61,7 +61,13 @@ CREATE INDEX IF NOT EXISTS pickups_household_time ON pickups(household,scheduled
 CREATE TABLE IF NOT EXISTS pickup_events(id INTEGER PRIMARY KEY,pickup TEXT NOT NULL REFERENCES pickups(id),actor TEXT NOT NULL REFERENCES users(id),action TEXT NOT NULL,at TEXT NOT NULL,snapshot TEXT NOT NULL,request_key TEXT NOT NULL,version INTEGER NOT NULL,UNIQUE(actor,request_key),UNIQUE(pickup,version));
 CREATE TABLE IF NOT EXISTS homework(id TEXT PRIMARY KEY,household TEXT NOT NULL REFERENCES households(id),title TEXT NOT NULL,due TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('not_started','in_progress','done')),note TEXT NOT NULL DEFAULT '',version INTEGER NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS homework_household_due ON homework(household,due);
-CREATE TABLE IF NOT EXISTS homework_events(id INTEGER PRIMARY KEY,homework TEXT NOT NULL REFERENCES homework(id),actor TEXT NOT NULL REFERENCES users(id),action TEXT NOT NULL,at TEXT NOT NULL,snapshot TEXT NOT NULL,request_key TEXT NOT NULL,version INTEGER NOT NULL,UNIQUE(actor,request_key),UNIQUE(homework,version));`);
+CREATE TABLE IF NOT EXISTS homework_events(id INTEGER PRIMARY KEY,homework TEXT NOT NULL REFERENCES homework(id),actor TEXT NOT NULL REFERENCES users(id),action TEXT NOT NULL,at TEXT NOT NULL,snapshot TEXT NOT NULL,request_key TEXT NOT NULL,version INTEGER NOT NULL,UNIQUE(actor,request_key),UNIQUE(homework,version));
+CREATE TABLE IF NOT EXISTS family_records(id TEXT PRIMARY KEY,household TEXT NOT NULL REFERENCES households(id),kind TEXT NOT NULL CHECK(kind IN ('gifts','routines','info')),data TEXT NOT NULL,archived INTEGER NOT NULL DEFAULT 0 CHECK(archived IN (0,1)),version INTEGER NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS family_records_household ON family_records(household,kind);
+CREATE TABLE IF NOT EXISTS family_events(id INTEGER PRIMARY KEY,record TEXT NOT NULL REFERENCES family_records(id),actor TEXT NOT NULL REFERENCES users(id),action TEXT NOT NULL,at TEXT NOT NULL,snapshot TEXT NOT NULL,request_key TEXT NOT NULL,UNIQUE(actor,request_key));
+CREATE TABLE IF NOT EXISTS routine_checks(record TEXT NOT NULL REFERENCES family_records(id),day TEXT NOT NULL,checked INTEGER NOT NULL CHECK(checked IN (0,1)),version INTEGER NOT NULL,actor TEXT NOT NULL REFERENCES users(id),at TEXT NOT NULL,PRIMARY KEY(record,day));
+CREATE TABLE IF NOT EXISTS family_settings(household TEXT PRIMARY KEY REFERENCES households(id),timezone TEXT NOT NULL,version INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS family_timezone_events(id INTEGER PRIMARY KEY,household TEXT NOT NULL REFERENCES households(id),actor TEXT NOT NULL REFERENCES users(id),request_key TEXT NOT NULL,timezone TEXT NOT NULL,at TEXT NOT NULL,UNIQUE(actor,request_key));`);
     connection.exec("COMMIT");
     connections.set(filename, connection);
     return connection;

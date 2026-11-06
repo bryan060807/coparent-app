@@ -416,7 +416,7 @@ export async function checkHomeworkBrowsers(
         ),
         false,
       );
-      for (const name of ["Today", "Pickups", "Homework", "Paper history"])
+      for (const name of ["Today", "Pickups", "Homework", "More"])
         await expect(
           pa.getByRole("button", { name, exact: true }),
         ).toBeVisible();

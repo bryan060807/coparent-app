@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import PickupPlanner, { NextPickup } from "./pickups";
 import HomeworkPlanner, { HomeworkToday } from "./homework";
+import FamilySection, { RoutineSummary } from "./family";
 type Member = { id: string; name: string };
 type Paper = {
   id: string;
@@ -30,14 +31,24 @@ const date = (s: string) =>
     year: "numeric",
   });
 export default function Home() {
+  const authRequest = useRef(0);
+  const account = useRef<string | null>(null);
   const [me, setMe] = useState<Member | null>(null),
     [members, setMembers] = useState<Member[]>([]),
     [loading, setLoading] = useState(true),
     [papers, setPapers] = useState<Paper[]>([]),
     [view, setView] = useState<
-      "today" | "history" | "add" | "pickups" | "homework"
+      | "today"
+      | "history"
+      | "add"
+      | "pickups"
+      | "homework"
+      | "gifts"
+      | "routines"
+      | "info"
     >("today"),
     [homeworkId, setHomeworkId] = useState<string | undefined>(),
+    [moreOpen, setMoreOpen] = useState(false),
     [selected, setSelected] = useState<Paper | null>(null),
     [error, setError] = useState(""),
     [syncError, setSyncError] = useState(""),
@@ -46,9 +57,12 @@ export default function Home() {
     [key, setKey] = useState(""),
     [notice, setNotice] = useState("");
   const refresh = useCallback(async () => {
+    const request = ++authRequest.current;
     try {
       const r = await fetch("/api/me");
+      if (request !== authRequest.current) return;
       if (r.status === 401) {
+        account.current = null;
         setMe(null);
         setSelected(null);
         setPapers([]);
@@ -57,14 +71,30 @@ export default function Home() {
       }
       if (!r.ok) throw Error();
       const m = await r.json();
+      if (request !== authRequest.current) return;
+      // A login in another tab can replace the cookie without an intervening
+      // 401. Clear the previous account's screen before showing the new user.
+      if (account.current !== m.user.id) {
+        account.current = m.user.id;
+        setSelected(null);
+        setPapers([]);
+        setView("today");
+        setHomeworkId(undefined);
+        setMoreOpen(false);
+        setNotice("");
+        setError("");
+      }
       setMe(m.user);
       setMembers(m.members);
       const p = await fetch("/api/papers");
       if (!p.ok) throw Error();
-      setPapers(await p.json());
+      const latestPapers = await p.json();
+      if (request !== authRequest.current) return;
+      setPapers(latestPapers);
       setSyncError("");
       setLoading(false);
     } catch {
+      if (request !== authRequest.current) return;
       setSyncError("Could not sync. Check your connection; we’ll retry.");
       setLoading(false);
     }
@@ -221,6 +251,8 @@ export default function Home() {
           className="text"
           onClick={async () => {
             await fetch("/api/logout", { method: "POST" });
+            ++authRequest.current;
+            account.current = null;
             setMe(null);
             setSelected(null);
             setView("today");
@@ -346,6 +378,7 @@ export default function Home() {
               className={view === "today" ? "active" : "text"}
               onClick={() => {
                 setView("today");
+                setMoreOpen(false);
                 setError("");
               }}
             >
@@ -355,6 +388,7 @@ export default function Home() {
               className={view === "pickups" ? "active" : "text"}
               onClick={() => {
                 setView("pickups");
+                setMoreOpen(false);
                 setError("");
                 setNotice("");
               }}
@@ -365,6 +399,7 @@ export default function Home() {
               className={view === "homework" ? "active" : "text"}
               onClick={() => {
                 setView("homework");
+                setMoreOpen(false);
                 setHomeworkId(undefined);
                 setError("");
                 setNotice("");
@@ -373,22 +408,65 @@ export default function Home() {
               Homework
             </button>
             <button
-              className={view === "history" ? "active" : "text"}
-              onClick={() => {
-                setView("history");
-                setError("");
-              }}
+              className={
+                moreOpen ||
+                ["history", "gifts", "routines", "info"].includes(view)
+                  ? "active"
+                  : "text"
+              }
+              aria-expanded={moreOpen}
+              aria-controls="more-sections"
+              onClick={() => setMoreOpen(!moreOpen)}
             >
-              Paper history
+              More
             </button>
           </nav>
-          {view === "homework" ? (
+          {moreOpen && (
+            <nav
+              id="more-sections"
+              aria-label="More sections"
+              className="more-sections"
+            >
+              {(
+                [
+                  { view: "gifts", label: "Gifts & money" },
+                  { view: "routines", label: "Routines & chores" },
+                  { view: "info", label: "Health & personal info" },
+                  { view: "history", label: "Paper history" },
+                ] as const
+              ).map((link) => (
+                <button
+                  className={view === link.view ? "active" : "secondary"}
+                  key={link.view}
+                  onClick={() => {
+                    setView(link.view);
+                    setMoreOpen(false);
+                    setError("");
+                    setNotice("");
+                  }}
+                >
+                  {link.label}
+                </button>
+              ))}
+            </nav>
+          )}
+          {view === "gifts" || view === "routines" || view === "info" ? (
+            <FamilySection
+              key={me.id + ":" + view}
+              kind={view}
+              members={members}
+            />
+          ) : view === "homework" ? (
             <HomeworkPlanner
-              key={homeworkId ?? "list"}
+              key={"homework-planner:" + me.id + ":" + (homeworkId ?? "list")}
               initialId={homeworkId}
             />
           ) : view === "pickups" ? (
-            <PickupPlanner members={members} me={me} />
+            <PickupPlanner
+              key={"pickup-planner:" + me.id}
+              members={members}
+              me={me}
+            />
           ) : view === "add" ? (
             <>
               <button className="text back" onClick={() => setView("today")}>
@@ -478,6 +556,7 @@ export default function Home() {
               )}
               {view === "today" && (
                 <NextPickup
+                  key={"pickup-summary:" + me.id}
                   onOpen={() => {
                     setView("pickups");
                     setNotice("");
@@ -486,9 +565,19 @@ export default function Home() {
               )}
               {view === "today" && (
                 <HomeworkToday
+                  key={"homework-summary:" + me.id}
                   onOpen={(id) => {
                     setHomeworkId(id);
                     setView("homework");
+                    setNotice("");
+                  }}
+                />
+              )}
+              {view === "today" && (
+                <RoutineSummary
+                  key={"routine-summary:" + me.id}
+                  onOpen={() => {
+                    setView("routines");
                     setNotice("");
                   }}
                 />
