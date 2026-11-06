@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
+import PickupPlanner, { NextPickup } from "./pickups";
 type Member = { id: string; name: string };
 type Paper = {
   id: string;
@@ -32,7 +33,9 @@ export default function Home() {
     [members, setMembers] = useState<Member[]>([]),
     [loading, setLoading] = useState(true),
     [papers, setPapers] = useState<Paper[]>([]),
-    [view, setView] = useState<"today" | "history" | "add">("today"),
+    [view, setView] = useState<"today" | "history" | "add" | "pickups">(
+      "today",
+    ),
     [selected, setSelected] = useState<Paper | null>(null),
     [error, setError] = useState(""),
     [syncError, setSyncError] = useState(""),
@@ -226,7 +229,7 @@ export default function Home() {
           Sign out
         </button>
       </header>
-      <p className="eyebrow">Hi, {me.name.split(" ")[0]} · SCHOOL PAPERS</p>
+      <p className="eyebrow">Hi, {me.name.split(" ")[0]} · YOUR HOUSEHOLD</p>
       {error && (
         <p role="alert" className="error">
           {error}
@@ -336,7 +339,7 @@ export default function Home() {
         </>
       ) : (
         <>
-          <nav aria-label="School papers">
+          <nav aria-label="Household">
             <button
               className={view === "today" ? "active" : "text"}
               onClick={() => {
@@ -347,16 +350,28 @@ export default function Home() {
               Today
             </button>
             <button
+              className={view === "pickups" ? "active" : "text"}
+              onClick={() => {
+                setView("pickups");
+                setError("");
+                setNotice("");
+              }}
+            >
+              Pickups
+            </button>
+            <button
               className={view === "history" ? "active" : "text"}
               onClick={() => {
                 setView("history");
                 setError("");
               }}
             >
-              History
+              Paper history
             </button>
           </nav>
-          {view === "add" ? (
+          {view === "pickups" ? (
+            <PickupPlanner members={members} me={me} />
+          ) : view === "add" ? (
             <>
               <button className="text back" onClick={() => setView("today")}>
                 ← Cancel
@@ -418,7 +433,7 @@ export default function Home() {
               <div className="heading">
                 <h1>{view === "today" ? "Today" : "History"}</h1>
                 <span className="count">
-                  {list.length} {view === "history" ? "returned" : "to do"}
+                  {list.length} {view === "history" ? "returned" : "papers"}
                 </span>
               </div>
               <p className="intro">
@@ -426,6 +441,14 @@ export default function Home() {
                   ? "A little clarity between two homes. Due soonest comes first."
                   : "Returned to school. Kept here for peace of mind."}
               </p>
+              {view === "today" && (
+                <NextPickup
+                  onOpen={() => {
+                    setView("pickups");
+                    setNotice("");
+                  }}
+                />
+              )}
               {view === "today" && (
                 <button
                   onClick={() => {

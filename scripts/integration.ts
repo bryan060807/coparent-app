@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { checkPickupApi, checkPickupBrowsers } from "./pickup-checks";
 import { chromium, expect } from "@playwright/test";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { networkInterfaces, tmpdir } from "node:os";
@@ -324,9 +325,18 @@ try {
     ).status,
     403,
   );
+  const persistedPickup = await checkPickupApi(base, a, b, c);
   await stop();
   start();
   await ready();
+  const restoredPickup = await (
+    await fetch(base + "/api/pickups/" + persistedPickup.id, {
+      headers: { cookie: b },
+    })
+  ).json();
+  assert.equal(restoredPickup.status, "completed");
+  assert.equal(restoredPickup.events.length, 3);
+  assert.equal(restoredPickup.scheduled_at, persistedPickup.scheduled_at);
   assert.equal(
     (await (await get("/api/papers/" + id, a)).json()).status,
     "returned",
@@ -435,7 +445,9 @@ try {
     await expect(
       pa.getByRole("heading", { name: "Museum trip permission slip" }),
     ).toHaveCount(0);
-    await pa.getByRole("button", { name: "History", exact: true }).click();
+    await pa
+      .getByRole("button", { name: "Paper history", exact: true })
+      .click();
     await expect(
       pa.getByRole("heading", { name: "Museum trip permission slip" }),
     ).toBeVisible();
@@ -476,6 +488,7 @@ try {
     console.log(
       `PASS (${development ? "development" : "production"}): browser sign-in at localhost and loopback IP${localIp ? ", simulated LAN Host/Origin" : ""}; sessions survive reload, full handoff syncs, sign-out revokes session, cross-origin requests rejected.`,
     );
+    await checkPickupBrowsers(browser, base, parentBBase);
   } finally {
     await browser.close();
   }

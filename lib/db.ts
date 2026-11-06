@@ -10,7 +10,10 @@ CREATE TABLE IF NOT EXISTS households(id TEXT PRIMARY KEY, name TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, household TEXT NOT NULL REFERENCES households(id), name TEXT NOT NULL, email TEXT UNIQUE NOT NULL, password TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),expires INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS papers(id TEXT PRIMARY KEY, household TEXT NOT NULL REFERENCES households(id),title TEXT NOT NULL,due TEXT NOT NULL,assignee TEXT NOT NULL REFERENCES users(id),status TEXT NOT NULL DEFAULT 'added',note TEXT NOT NULL DEFAULT '',file TEXT NOT NULL,mime TEXT NOT NULL,original TEXT NOT NULL,created TEXT NOT NULL,creator TEXT NOT NULL REFERENCES users(id),request_key TEXT NOT NULL,UNIQUE(creator,request_key));
-CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY,paper TEXT NOT NULL REFERENCES papers(id),actor TEXT NOT NULL REFERENCES users(id),action TEXT NOT NULL,note TEXT NOT NULL DEFAULT '',at TEXT NOT NULL,UNIQUE(paper,action));`);
+CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY,paper TEXT NOT NULL REFERENCES papers(id),actor TEXT NOT NULL REFERENCES users(id),action TEXT NOT NULL,note TEXT NOT NULL DEFAULT '',at TEXT NOT NULL,UNIQUE(paper,action));
+CREATE TABLE IF NOT EXISTS pickups(id TEXT PRIMARY KEY,household TEXT NOT NULL REFERENCES households(id),title TEXT NOT NULL,scheduled_at TEXT NOT NULL,location TEXT NOT NULL,assignee TEXT NOT NULL REFERENCES users(id),note TEXT NOT NULL DEFAULT '',status TEXT NOT NULL CHECK(status IN ('scheduled','completed','cancelled')),version INTEGER NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS pickups_household_time ON pickups(household,scheduled_at);
+CREATE TABLE IF NOT EXISTS pickup_events(id INTEGER PRIMARY KEY,pickup TEXT NOT NULL REFERENCES pickups(id),actor TEXT NOT NULL REFERENCES users(id),action TEXT NOT NULL,at TEXT NOT NULL,snapshot TEXT NOT NULL,request_key TEXT NOT NULL,version INTEGER NOT NULL,UNIQUE(actor,request_key),UNIQUE(pickup,version));`);
 export function hash(password: string) {
   const salt = randomBytes(16).toString("hex");
   return salt + ":" + scryptSync(password, salt, 64).toString("hex");

@@ -1,6 +1,6 @@
 # Two Homes
 
-A private, mobile-first school-paper handoff for a fictional six-year-old, Casey Willow. Built with Next.js, TypeScript, and SQLite (Node's built-in `node:sqlite`). No external services or API keys are needed. Scheduling, homework, notifications, OCR, and deployment are intentionally out of scope.
+A private, mobile-first app for school-paper handoffs and shared pickup plans for a fictional six-year-old, Casey Willow. Built with Next.js, TypeScript, and SQLite (Node's built-in `node:sqlite`). No external services or API keys are needed. Recurring schedules, homework, notifications, OCR, and deployment remain out of scope.
 
 ## Install and launch
 
@@ -30,8 +30,21 @@ All three use the demo password `Backpack-demo-26!`. These are local development
 2. Alex: Today → Add school paper. Enter **Field trip permission slip**, choose a due date, assign Sam, and select the sample PDF or a JPEG/PNG. Add paper.
 3. Sam: without refreshing, the paper appears within about three seconds. Open it and choose **Open original attachment**. Mark **Signed**, with the note **In the blue folder.**
 4. Both parents still see the paper on Today, labeled **Signed · return to school**. Either parent can open it and mark **Returned** once it has gone back to school.
-5. It leaves Today and appears in History. Open it to see the chronological, named and timestamped Added → Signed → Returned timeline. Times display in the browser's local timezone; due dates are date-only.
+5. It leaves Today and appears in Paper history. Open it to see the chronological, named and timestamped Added → Signed → Returned timeline. Times display in the browser's local timezone; due dates are date-only.
 6. In a third isolated browser session, sign in as Jordan. The Willow papers are absent. Known paper, timeline, and attachment URLs return 404; anonymous API requests return 401.
+
+## Shared pickups walkthrough
+
+1. Alex: choose **Pickups → Add pickup**. Enter **School pickup**, a date and time, **Willow Primary, front gate**, assign Sam, and optionally add **Bring the blue folder**.
+2. Sam: Today shows the next pickup within about three seconds. Choose **View pickups**, then open the pickup. Both parents see the time, location, responsible parent, and note.
+3. Either parent can **Edit pickup** to reschedule, change the location, reassign responsibility, or update the note. Changes sync automatically, including when the other parent already has the pickup open. Activity keeps named, timestamped snapshots of each change.
+4. After the handoff, choose **Mark picked up → Confirm picked up**. It leaves Upcoming and Today, and remains under **Past pickups**. To cancel a plan instead, choose **Cancel pickup → Confirm cancellation**. Completed and cancelled records cannot be edited or reopened.
+5. If both parents edit at once, the older draft cannot overwrite the newer version. The draft stays visible alongside the current details; **Discard my draft and load latest details** explicitly replaces it. Retrying a saved operation does not duplicate its activity.
+6. Jordan's separate household cannot list or open these pickups, read their activity, or modify them through known API IDs. Anonymous requests also require sign-in.
+
+These are individual pickups, not a repeating custody calendar. Upcoming lists scheduled pickups earliest first, including past times that still need checking off or cancelling. Today highlights the earliest unresolved pickup. Enter times in the browser's displayed local time zone; instants are stored in UTC, and another time zone displays the equivalent local time. Nonexistent times during the spring clock change are rejected. Pickup responsibility is shared information: either household parent may edit, complete, or cancel a plan, with their own identity recorded.
+
+Existing installations need only pull the update and restart `npm run dev`. New pickup tables are created automatically without deleting accounts, school papers, or attachments. No new seed/reset command is required; a new household starts with no pickups.
 
 ## Verification
 
@@ -48,6 +61,8 @@ Browser checks use the installed `/usr/bin/chromium` when available. Otherwise i
 
 Coverage includes two independent authenticated browser contexts at a 390px phone viewport, live cross-session updates without reload, upload errors retaining text/date fields, the full handoff/history, original PDF bytes, third-household and anonymous access to direct URLs, assignee membership, actor spoofing, invalid files/dates, oversized files, repeated uploads, concurrent duplicate signing, stale updates, CSRF rejection, and data/session/attachment persistence after restart.
 
+Pickup checks also cover create/edit/reassignment/completion/cancellation, automatic Today updates, Chicago/Denver time-zone conversion, stale draft preservation, immutable final states, idempotent retries, concurrent updates, chronological ordering, household boundaries on direct pickup/activity URLs, and pickup persistence alongside existing school papers after restart.
+
 Authentication regressions cover browser sign-in at localhost and `127.0.0.1`, session cookies surviving reload, sign-out, the actual request port, simulated LAN Host/Origin headers, and rejection of different origins, ports, schemes, and spoofed forwarded hosts. Development tests also verify that local-IP dev assets are allowed while external origins remain blocked. Physical-phone access still requires a reachable Windows host; these tests do not establish phone connectivity.
 
 Before sign-in, a 401 response from `/api/me` is expected. Repeated 403 responses from `/api/login` are not: update the app and restart the dev server. When using local HTTP, leave `COOKIE_SECURE` unset or `false`; `true` requires HTTPS and can prevent the browser from retaining its session on an HTTP address. Seeding again is safe and does not remove papers or uploads.
@@ -59,6 +74,7 @@ Physical-phone camera/file-picker behavior, iOS/Android PDF viewing, keyboard la
 - `data/family.sqlite` stores users, hashed passwords, expiring sessions, papers, and events. `data/attachments/` stores random-named private originals outside `public/`. Both are ignored by Git and persist across app restarts. Back up the entire data directory together. Override its location with an absolute `DATA_DIR` if desired, using the same setting for seed and server.
 - Every API request authenticates the session; every individual paper, timeline, attachment, and mutation query verifies household membership server-side. The actor comes exclusively from the session. Parents may sign or return a paper within their own household; the assignee indicates responsibility, not exclusive permission.
 - SQLite transactions and a unique event constraint prevent duplicate status events. Returned is final. Returning an unsigned paper is rejected. Retried creation uses an idempotency key. No public attachment routes exist.
+- Pickups and their activity are in the same private SQLite database. Every pickup mutation requires a version and an idempotency key (creation needs only the key). Conflicts return 409 rather than silently replacing another parent's edits. Activity attributes changes to the signed-in parent and retains the plan details at each revision.
 - Uploads are limited to 10 MiB, with a bounded multipart request, MIME and file-signature checks. Originals are served with private/no-store caching, nosniff and sandbox headers. This is format validation, not antivirus scanning.
 - Session cookies are HTTP-only, SameSite Strict, and expire after seven days. Mutations reject cross-origin requests. Local HTTP works by default; set `COOKIE_SECURE=true` when running behind HTTPS. Seed credentials and local HTTP are for development. Public deployment and production identity onboarding are separate future work.
 

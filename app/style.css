@@ -321,3 +321,86 @@ footer {
     filter: brightness(0.96);
   }
 }
+
+.pickup-summary {
+  background: #e8eddf;
+  border: 0;
+  border-radius: 16px;
+  padding: 18px;
+  margin: 20px 0 24px;
+}
+.pickup-summary h2 {
+  margin: 0;
+}
+.pickup-summary p {
+  margin: 10px 0;
+}
+.pickup-time {
+  font-weight: 700;
+  line-height: 1.6;
+}
+.pickup-filters {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+}
+.pickup-filters button {
+  flex: 1;
+}
+.pickup-facts {
+  display: grid;
+  grid-template-columns: 85px 1fr;
+  gap: 16px;
+  line-height: 1.5;
+  margin: 24px 0;
+}
+.pickup-facts dt {
+  color: #607467;
+}
+.pickup-facts dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.pickup-actions {
+  display: grid;
+  gap: 12px;
+}
+.secondary {
+  background: #e0e8dc;
+  color: #254d3d;
+}
+.danger {
+  color: #983d2c;
+}
+.pickup-confirm {
+  padding: 16px;
+  background: #f0e8d8;
+  border-radius: 12px;
+}
+.pickup-confirm button {
+  width: 100%;
+  margin-top: 8px;
+}
+.pickup-planner .note {
+  margin-top: 20px;
+}
+.pickup-planner form {
+  margin-bottom: 24px;
+}
+.pickup-planner .card {
+  overflow-wrap: anywhere;
+}
+nav button {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.pickup-planner .timeline p {
+  font-size: 14px;
+}
+.pickup-summary .cardtop {
+  align-items: center;
+}
+.pickup-summary .text {
+  white-space: nowrap;
+}
