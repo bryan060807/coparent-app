@@ -709,7 +709,7 @@ export async function checkFamilyBrowsers(
     );
     await pa.getByRole("button", { name: /Back to Health/ }).click();
     await pa.getByRole("button", { name: "Add info card" }).click();
-    await pa.getByLabel("Info title").fill("About Casey");
+    await pa.getByLabel("Info title").fill("About Bill");
     await pa.getByLabel("Category", { exact: true }).selectOption("personal");
     await pa
       .getByLabel("Details", { exact: true })
@@ -725,7 +725,7 @@ export async function checkFamilyBrowsers(
     await pb.getByRole("button", { name: /Back to Health/ }).click();
     await pb.getByLabel("Show category").selectOption("personal");
     await expect(
-      pb.getByRole("heading", { name: "About Casey", exact: true }),
+      pb.getByRole("heading", { name: "About Bill", exact: true }),
     ).toBeVisible({ timeout: 10000 });
     await expect(
       pb.getByRole("heading", { name: "Allergies", exact: true }),

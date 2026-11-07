@@ -3,7 +3,10 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import PickupPlanner, { NextPickup } from "./pickups";
 import HomeworkPlanner, { HomeworkToday } from "./homework";
 import FamilySection, { RoutineSummary } from "./family";
-import { Brand, Icon, EmptyMark, PrepIllustration } from "./ui";
+import { Brand, Icon, EmptyMark } from "./ui";
+import AuthScreen from "./auth";
+import TeamSettings from "./team";
+import { APP_NAME, type Team } from "../lib/team-types";
 type Member = { id: string; name: string };
 type Paper = {
   id: string;
@@ -35,6 +38,7 @@ export default function Home() {
   const authRequest = useRef(0);
   const account = useRef<string | null>(null);
   const [me, setMe] = useState<Member | null>(null),
+    [team, setTeam] = useState<Team | null>(null),
     [members, setMembers] = useState<Member[]>([]),
     [loading, setLoading] = useState(true),
     [papers, setPapers] = useState<Paper[]>([]),
@@ -47,6 +51,7 @@ export default function Home() {
       | "gifts"
       | "routines"
       | "info"
+      | "team"
     >("today"),
     [homeworkId, setHomeworkId] = useState<string | undefined>(),
     [moreOpen, setMoreOpen] = useState(false),
@@ -61,6 +66,9 @@ export default function Home() {
     // Sticky navigation stays reachable on long lists; open the next view at its top.
     window.scrollTo(0, 0);
   }, [view, selected?.id, homeworkId, me?.id]);
+  useEffect(() => {
+    document.title = `${me && team ? team.name : APP_NAME} · Family handoffs`;
+  }, [team?.name, me?.id]);
   const refresh = useCallback(async () => {
     const request = ++authRequest.current;
     try {
@@ -69,6 +77,7 @@ export default function Home() {
       if (r.status === 401) {
         account.current = null;
         setMe(null);
+        setTeam(null);
         setSelected(null);
         setPapers([]);
         setLoading(false);
@@ -90,6 +99,7 @@ export default function Home() {
         setError("");
       }
       setMe(m.user);
+      setTeam(m.team);
       setMembers(m.members);
       const p = await fetch("/api/papers");
       if (!p.ok) throw Error();
@@ -128,26 +138,6 @@ export default function Home() {
       clearInterval(i);
     };
   }, [selected?.id]);
-  async function login(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setBusy(true);
-    setError("");
-    const f = new FormData(e.currentTarget);
-    try {
-      const r = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(Object.fromEntries(f)),
-      });
-      const b = await r.json();
-      if (!r.ok) throw Error(b.error);
-      await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Sign-in failed.");
-    } finally {
-      setBusy(false);
-    }
-  }
   async function add(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -202,82 +192,42 @@ export default function Home() {
         <p>Opening your household…</p>
       </main>
     );
-  if (!me)
-    return (
-      <main className="login">
-        <section className="login-story">
-          <Brand />
-          <div className="login-story-copy">
-            <p className="section-kicker">The family notebook</p>
-            <h1>
-              Less to remember.
-              <br />
-              <em>More shared.</em>
-            </h1>
-            <p>A little mise en place for life between two homes.</p>
-          </div>
-          <PrepIllustration />
-          <p className="login-story-foot">
-            Two homes. One thoughtfully shared day.
-          </p>
-        </section>
-        <section className="login-panel">
-          <p className="section-kicker">Your place at the table</p>
-          <form onSubmit={login}>
-            <h2>Sign in</h2>
-            <p className="muted">
-              The details of family life, all in one place.
-            </p>
-            <label>
-              Email
-              <input
-                name="email"
-                type="email"
-                autoComplete="username"
-                required
-              />
-            </label>
-            <label>
-              Password
-              <input
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-              />
-            </label>
-            {error && (
-              <p role="alert" className="error">
-                {error}
-              </p>
-            )}
-            <button disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
-          </form>
-          <p className="login-privacy">
-            <span aria-hidden="true">·</span> A private space for your
-            household.
-          </p>
-        </section>
-      </main>
-    );
+  if (!me) return <AuthScreen onAuthenticated={refresh} />;
   const list = papers.filter((p) =>
     view === "history" ? p.status === "returned" : p.status !== "returned",
   );
   return (
     <main>
       <header>
-        <Brand />
+        <Brand name={team?.name} />
         <button
           className="text signout"
+          disabled={busy}
           onClick={async () => {
-            await fetch("/api/logout", { method: "POST" });
-            ++authRequest.current;
-            account.current = null;
-            setMe(null);
-            setSelected(null);
-            setView("today");
-            setError("");
-            setNotice("");
+            setBusy(true);
+            try {
+              const r = await fetch("/api/logout", { method: "POST" });
+              if (!r.ok && r.status !== 401) throw Error();
+              ++authRequest.current;
+              account.current = null;
+              setMe(null);
+              setTeam(null);
+              setSelected(null);
+              setPapers([]);
+              setMembers([]);
+              setHomeworkId(undefined);
+              setMoreOpen(false);
+              setView("today");
+              setError("");
+              setSyncError("");
+              setNotice("");
+            } catch {
+              setError(
+                "Could not sign out. Check your connection and try again.",
+              );
+            } finally {
+              setBusy(false);
+            }
           }}
         >
           <Icon name="logout" />
@@ -435,7 +385,9 @@ export default function Home() {
               <button
                 className={
                   moreOpen ||
-                  ["history", "gifts", "routines", "info"].includes(view)
+                  ["history", "gifts", "routines", "info", "team"].includes(
+                    view,
+                  )
                     ? "active"
                     : "text"
                 }
@@ -459,6 +411,7 @@ export default function Home() {
                     { view: "routines", label: "Routines & chores" },
                     { view: "info", label: "Health & personal info" },
                     { view: "history", label: "Paper history" },
+                    { view: "team", label: "Your team" },
                   ] as const
                 ).map((link) => (
                   <button
@@ -478,7 +431,18 @@ export default function Home() {
               </nav>
             )}
           </div>
-          {view === "gifts" || view === "routines" || view === "info" ? (
+          {view === "team" && team ? (
+            <TeamSettings
+              key={"team:" + me.id}
+              team={team}
+              members={members}
+              onSaved={(next) => {
+                if (account.current !== me.id) return;
+                ++authRequest.current;
+                setTeam(next);
+              }}
+            />
+          ) : view === "gifts" || view === "routines" || view === "info" ? (
             <FamilySection
               key={me.id + ":" + view}
               kind={view}
@@ -573,6 +537,17 @@ export default function Home() {
                   ? "A little preparation. A smoother handoff. Due soonest comes first."
                   : "Returned to school. Kept here for peace of mind."}
               </p>
+              {view === "today" && members.length === 1 && (
+                <div className="team-welcome">
+                  <p>
+                    <strong>Welcome to {team?.name}.</strong> Bring the other
+                    parent onto your team so you can share the details.
+                  </p>
+                  <button className="secondary" onClick={() => setView("team")}>
+                    Invite the other parent
+                  </button>
+                </div>
+              )}
               {view === "today" && (
                 <button
                   onClick={() => {

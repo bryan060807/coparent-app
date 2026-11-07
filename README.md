@@ -1,6 +1,6 @@
-# Two Homes
+# Team · Their name. Your team.
 
-A private, mobile-first app for school papers, pickup plans, homework, gifts and money, routines and chores, and shared health/personal notes for a fictional six-year-old, Casey Willow. Built with Next.js, TypeScript, and SQLite (Node's built-in `node:sqlite`). No external services or API keys are needed. Repeating pickup/custody schedules, notifications, OCR, a combined household timeline, and deployment remain out of scope.
+A private, mobile-first app named after the child at its heart: **Team Bill**, Team Maya, or the name/nickname your family chooses. Both parents are on the same team, across two homes. The app handles school papers, pickup plans, homework, gifts and money, routines and chores, and shared health/personal notes. Fictional examples use six-year-old Bill Willow. Built with Next.js, TypeScript, and SQLite (Node's built-in `node:sqlite`). No external services or API keys are needed. Repeating pickup/custody schedules, notifications, OCR, a combined household timeline, and deployment remain out of scope.
 
 The interface takes its visual cues from a chef's prep notebook: warm paper, forest green, restrained brass accents, editorial headings, and clear checklists. Plain feature labels, large controls, sticky navigation, visible keyboard focus, and reduced-motion support keep it practical. DM Sans and Newsreader fonts are bundled locally; the app makes no requests to a font service.
 
@@ -10,7 +10,6 @@ Use **Node.js 24+** and npm. From the repository root:
 
 ```sh
 npm ci
-npm run seed
 npm run dev
 ```
 
@@ -18,7 +17,7 @@ For an existing checkout, stop the server, run `git pull --ff-only origin main`,
 
 The development server listens on port 3000 and all interfaces. If 3000 is occupied, Next chooses another port (such as 3001); use the **Local** address printed in the terminal. Open `localhost` on that computer, not the `0.0.0.0` bind address. For two physical phones, both must be able to reach that machine on a trusted local network; remote cloud access is environment-specific. Next's development assets allow this computer's local interface addresses without allowing arbitrary external origins. Restart the dev server after changing networks.
 
-The seed is development-only, repeatable, and preserves existing records. It creates these fictional accounts:
+Choose **Create an account** to start your own team; no seed command is needed. To try fictional demo accounts instead, run `npm run seed` from another terminal. The seed is development-only, repeatable, and preserves existing records and custom team names. It creates these fictional accounts:
 
 | Parent          | Email               | Household |
 | --------------- | ------------------- | --------- |
@@ -27,6 +26,18 @@ The seed is development-only, repeatable, and preserves existing records. It cre
 | Jordan Cedar    | jordan@example.test | Cedar     |
 
 All three use the demo password `Backpack-demo-26!`. These are local development credentials, not real family accounts. The seed creates no papers, so you can see the new-household empty state. Upload the included **`fixtures/permission-slip.pdf`**, a small fictional permission slip.
+
+## Accounts, invitations, and your team name
+
+1. Choose **Create an account**, enter your name, email, and a password of **12–200 characters**, then choose **Create a team**. Enter your child's name or nickname. **Bill** becomes **Team Bill**; the preview explains the idea before you save.
+2. You are signed in to a new, empty household. Choose **Invite the other parent** on Today, or **More → Your team → Create invitation**. Share the code privately yourself; the app does not send an email.
+3. In a separate browser session, the other parent chooses **Create an account → Join the other parent’s team**, enters their own name/email/password, and pastes the code. Both accounts now share the same household. A code is valid once for **72 hours**; creating another invalidates any unused code. Joining and claiming the second place happen in one transaction. Teams hold two parents.
+4. Either parent can open **More → Your team** and edit **Child's name or nickname**. The **“Their name. Your team.”** explanation and live preview make naming part of the app's character. Names support spaces, accents, and other scripts, up to 40 characters. Changes appear in both parents' headers and browser titles within about three seconds. Stale edits keep the draft and require explicitly loading the current name.
+5. Sign out and return using your own email and password. Email addresses are case-insensitive. Existing fictional accounts and their records continue to work; no reset/reseed is required. A legacy household without a saved team name starts as **Team Bill** until either parent changes it. Newly seeded Willow/Cedar teams use Bill/Robin.
+
+Passwords are salted and hashed with scrypt. New session tokens and invitation codes are stored as hashes, with HTTP-only session cookies. Sign-in and signup attempts are limited per email address; excessive attempts return 429 for up to 15 minutes. The server derives household membership and actor identity from the authenticated session, never a submitted household/user ID. Public sign-in pages use the neutral **Team** brand; a household's custom name is fetched only after authentication, and cleared on sign-out/account switching.
+
+Email is the login identifier. Email ownership verification, password recovery, and outbound email are not connected to a mail service in this build. Keep credentials somewhere you can recover them. Real-device network access and public deployment are separate setup tasks.
 
 ## Two-browser walkthrough
 
@@ -62,7 +73,7 @@ Due dates are date-only values: switching time zones does not shift an assignmen
 
 ## Gifts, money, routines, and family info
 
-The compact main navigation is **Today / Pickups / Homework / More**. Under **More**, open **Gifts & money**, **Routines & chores**, **Health & personal info**, or **Paper history**. Both household parents can add and edit records. Every section syncs about every three seconds, records named activity, preserves a stale edit draft instead of overwriting a newer change, and supports **Archive record / Restore record**. Archives retain earlier details and activity; these controls do not permanently erase records.
+The compact main navigation is **Today / Pickups / Homework / More**. Under **More**, open **Gifts & money**, **Routines & chores**, **Health & personal info**, **Paper history**, or **Your team**. Both household parents can add and edit family records. The record sections sync about every three seconds, record named activity, preserve stale edit drafts instead of overwriting newer changes, and support **Archive record / Restore record**. Archives retain earlier details and activity; these controls do not permanently erase records.
 
 **Gifts & money:** add a Gift, Money received, or Money spent, with a title, date, giver/payee, occasion, optional note, and thank-you status. Use **Edit record** to correct any field or record a sent thank-you. Monetary amounts use USD integer cents, up to $1,000,000 per entry, avoiding floating-point rounding. The recorded cash balance is received minus spent across active money entries. Gift values are optional and excluded from cash totals; archived entries are also excluded. Negative recorded balances are allowed when the log is incomplete. These are manual records; no payments or bank connections are involved.
 
@@ -103,9 +114,11 @@ Family-section checks cover integer cash totals, gift value exclusion, thank-you
 
 Authentication regressions cover browser sign-in at localhost and `127.0.0.1`, session cookies surviving reload, sign-out, the actual request port, simulated LAN Host/Origin headers, and rejection of different origins, ports, schemes, and spoofed forwarded hosts. Development tests also verify that local-IP dev assets are allowed while external origins remain blocked. Physical-phone access still requires a reachable Windows host; these tests do not establish phone connectivity.
 
+Account/team checks cover self-service signup, case-insensitive login, hashed passwords and session tokens, older-session compatibility, rate limits, invitation replacement/expiry/single use and simultaneous claims, the two-parent limit, household name privacy, actor/household spoofing, duplicate/stale renames, restart persistence, error drafts, account-switch/sign-out clearing, and long Unicode names at a 320px phone viewport. Two independent browser sessions create accounts and join the same team through the actual screens.
+
 Before sign-in, a 401 response from `/api/me` is expected. Repeated 403 responses from `/api/login` are not: update the app and restart the dev server. When using local HTTP, leave `COOKIE_SECURE` unset or `false`; `true` requires HTTPS and can prevent the browser from retaining its session on an HTTP address. Seeding again is safe and does not remove papers or uploads.
 
-If `/api/me` returns **500** and the terminal says **database is locked/busy**, stop the app with Ctrl+C (answer Y to Windows' batch-job prompt). Stop any other Two Homes server running against the same data directory, and close database editors holding write transactions. Pull the latest update and start one server. Startup now waits for brief locks, reuses one connection across development reloads, and closes failed connections without resetting data. Persistent locks produce an actionable terminal error after a bounded wait. Do not delete `data/`, the SQLite database, or its WAL/SHM files to clear a lock.
+If `/api/me` returns **500** and the terminal says **database is locked/busy**, stop the app with Ctrl+C (answer Y to Windows' batch-job prompt). Stop any other copy of this app running against the same data directory, and close database editors holding write transactions. Pull the latest update and start one server. Startup now waits for brief locks, reuses one connection across development reloads, and closes failed connections without resetting data. Persistent locks produce an actionable terminal error after a bounded wait. Do not delete `data/`, the SQLite database, or its WAL/SHM files to clear a lock.
 
 Physical-phone camera/file-picker behavior, iOS/Android PDF viewing, keyboard layout, and real-device network reconnects still need hands-on verification. JPEG, PNG, and PDF are supported; HEIC must be exported to JPEG. Signing records a parent's confirmation that the physical paper was signed; it does not edit or electronically sign the attachment.
 
@@ -117,6 +130,6 @@ Physical-phone camera/file-picker behavior, iOS/Android PDF viewing, keyboard la
 - Pickups and their activity are in the same private SQLite database. Every pickup mutation requires a version and an idempotency key (creation needs only the key). Conflicts return 409 rather than silently replacing another parent's edits. Activity attributes changes to the signed-in parent and retains the plan details at each revision.
 - Homework uses the same version checks, idempotency keys, server-owned actor identity, and household membership checks. Assignment and note edits preserve their earlier snapshots in private activity records. Finished assignments cannot move backward or be edited by stale clients.
 - Uploads are limited to 10 MiB, with a bounded multipart request, MIME and file-signature checks. Originals are served with private/no-store caching, nosniff and sandbox headers. This is format validation, not antivirus scanning.
-- Session cookies are HTTP-only, SameSite Strict, and expire after seven days. Mutations reject cross-origin requests. Local HTTP works by default; set `COOKIE_SECURE=true` when running behind HTTPS. Seed credentials and local HTTP are for development. Public deployment and production identity onboarding are separate future work.
+- Session cookies are HTTP-only, SameSite Strict, and expire after seven days. Sign-out revokes the current session. Existing sessions from earlier versions work until expiry; new sessions use hashed token storage. Mutations reject cross-origin requests. Local HTTP works by default; set `COOKIE_SECURE=true` when running behind HTTPS. Seed credentials and local HTTP are for development. Public deployment is separate future work.
 
-For a local production-mode run after seeding: `npm run build` then `npm start`. No background worker or additional database process is required.
+For a local production-mode run: `npm run build` then `npm start`. Create an account in the browser, or seed fictional accounts before starting. No background worker or additional database process is required.

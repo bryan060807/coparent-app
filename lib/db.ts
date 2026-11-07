@@ -68,6 +68,10 @@ CREATE TABLE IF NOT EXISTS family_events(id INTEGER PRIMARY KEY,record TEXT NOT 
 CREATE TABLE IF NOT EXISTS routine_checks(record TEXT NOT NULL REFERENCES family_records(id),day TEXT NOT NULL,checked INTEGER NOT NULL CHECK(checked IN (0,1)),version INTEGER NOT NULL,actor TEXT NOT NULL REFERENCES users(id),at TEXT NOT NULL,PRIMARY KEY(record,day));
 CREATE TABLE IF NOT EXISTS family_settings(household TEXT PRIMARY KEY REFERENCES households(id),timezone TEXT NOT NULL,version INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS family_timezone_events(id INTEGER PRIMARY KEY,household TEXT NOT NULL REFERENCES households(id),actor TEXT NOT NULL REFERENCES users(id),request_key TEXT NOT NULL,timezone TEXT NOT NULL,at TEXT NOT NULL,UNIQUE(actor,request_key));`);
+    connection.exec(`CREATE TABLE IF NOT EXISTS team_settings(household TEXT PRIMARY KEY REFERENCES households(id),child_name TEXT NOT NULL,version INTEGER NOT NULL,updated_by TEXT REFERENCES users(id),updated_at TEXT);
+CREATE TABLE IF NOT EXISTS team_events(id INTEGER PRIMARY KEY,household TEXT NOT NULL REFERENCES households(id),actor TEXT NOT NULL REFERENCES users(id),child_name TEXT NOT NULL,version INTEGER NOT NULL,request_key TEXT NOT NULL,at TEXT NOT NULL,UNIQUE(actor,request_key),UNIQUE(household,version));
+CREATE TABLE IF NOT EXISTS household_invites(token_hash TEXT PRIMARY KEY,household TEXT NOT NULL REFERENCES households(id),created_by TEXT NOT NULL REFERENCES users(id),expires INTEGER NOT NULL,used_by TEXT REFERENCES users(id));
+CREATE TABLE IF NOT EXISTS auth_limits(key TEXT PRIMARY KEY,window_start INTEGER NOT NULL,attempts INTEGER NOT NULL);`);
     connection.exec("COMMIT");
     connections.set(filename, connection);
     return connection;
@@ -76,7 +80,7 @@ CREATE TABLE IF NOT EXISTS family_timezone_events(id INTEGER PRIMARY KEY,househo
     connection.close();
     if (isBusy(error)) {
       throw new Error(
-        "The Two Homes database is busy. Stop other copies of this app or database editors, then restart this server. Do not delete the data directory.",
+        "The app database is busy. Stop other copies of this app or database editors, then restart this server. Do not delete the data directory.",
         { cause: error },
       );
     }

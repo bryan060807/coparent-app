@@ -1,4 +1,5 @@
 import type { SVGProps } from "react";
+import { APP_NAME } from "../lib/team-types";
 export type IconName =
   | "today"
   | "pickups"
@@ -9,8 +10,15 @@ export type IconName =
   | "info"
   | "history"
   | "paper"
-  | "logout";
+  | "logout"
+  | "team";
 const paths: Record<IconName, React.ReactNode> = {
+  team: (
+    <>
+      <circle cx="9" cy="7" r="3" />
+      <path d="M3 21v-3a6 6 0 0 1 12 0v3m1-17a3 3 0 0 1 0 6m3 11v-3a6 6 0 0 0-3-5" />
+    </>
+  ),
   today: (
     <>
       <circle cx="12" cy="12" r="4" />
@@ -93,7 +101,7 @@ export function Icon({
     </svg>
   );
 }
-export function Brand() {
+export function Brand({ name = APP_NAME }: { name?: string }) {
   return (
     <div className="brand">
       <svg
@@ -120,7 +128,7 @@ export function Brand() {
         />
       </svg>
       <div>
-        <strong>Two Homes</strong>
+        <strong>{name}</strong>
         <span>Family, well prepared.</span>
       </div>
     </div>

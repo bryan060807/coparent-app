@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, dataDir, verify, type User } from "../../../lib/db";
-import { randomBytes, randomUUID } from "node:crypto";
+import { db, dataDir, type User } from "../../../lib/db";
+import { randomUUID } from "node:crypto";
 import { writeFileSync, readFileSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import { getPickups, savePickup } from "../../../lib/pickups";
 import { getHomework, saveHomework } from "../../../lib/homework";
 import { getFamily, saveFamily } from "../../../lib/family";
+import {
+  currentUser as user,
+  signIn,
+  signUp,
+  signOut,
+  createInvitation,
+} from "../../../lib/auth";
+import { getTeam, saveTeam } from "../../../lib/team";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const json = (v: unknown, status = 200) =>
   NextResponse.json(v, { status, headers: { "Cache-Control": "no-store" } });
-function user(req: NextRequest): User | undefined {
-  return db
-    .prepare(
-      "SELECT u.* FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>?",
-    )
-    .get(req.cookies.get("session")?.value || "", Date.now()) as
-    User | undefined;
-}
 function paper(id: string, u: User) {
   return db
     .prepare("SELECT * FROM papers WHERE id=? AND household=?")
@@ -32,11 +32,19 @@ export async function GET(req: NextRequest) {
   const u = user(req);
   if (!u) return json({ error: "Please sign in." }, 401);
   const parts = req.nextUrl.pathname.split("/").slice(2);
+  if (parts[0] === "team")
+    return parts.length === 1
+      ? json(getTeam(u))
+      : json({ error: "Not found." }, 404);
   if (parts[0] === "pickups") return getPickups(parts, u);
   if (parts[0] === "homework") return getHomework(parts, u);
   if (parts[0] === "family") return getFamily(parts, u);
   if (parts[0] === "me")
-    return json({ user: { id: u.id, name: u.name }, members: members(u) });
+    return json({
+      user: { id: u.id, name: u.name },
+      members: members(u),
+      team: getTeam(u),
+    });
   if (parts[0] === "papers" && !parts[1])
     return json(
       db
@@ -90,51 +98,16 @@ export async function POST(req: NextRequest) {
       return json({ error: "Invalid request origin." }, 403);
   }
   const parts = req.nextUrl.pathname.split("/").slice(2);
-  if (parts[0] === "login") {
-    let b;
-    try {
-      b = await req.json();
-    } catch {
-      return json({ error: "Invalid sign-in request." }, 400);
-    }
-    if (
-      !b ||
-      typeof b.email !== "string" ||
-      typeof b.password !== "string" ||
-      b.password.length > 200
-    )
-      return json({ error: "Enter your email and password." }, 400);
-    const u = db
-      .prepare("SELECT * FROM users WHERE email=?")
-      .get(b.email.toLowerCase().trim()) as
-      (User & { password: string }) | undefined;
-    if (!u || !verify(b.password, u.password))
-      return json({ error: "Email or password is incorrect." }, 401);
-    const token = randomBytes(32).toString("hex");
-    db.prepare("INSERT INTO sessions VALUES(?,?,?)").run(
-      token,
-      u.id,
-      Date.now() + 7 * 86400000,
-    );
-    const res = json({ ok: true });
-    res.cookies.set("session", token, {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: process.env.COOKIE_SECURE === "true",
-      path: "/",
-      maxAge: 604800,
-    });
-    return res;
-  }
+  if (parts.length === 1 && parts[0] === "login") return signIn(req);
+  if (parts.length === 1 && parts[0] === "signup") return signUp(req);
   const u = user(req);
   if (!u) return json({ error: "Please sign in." }, 401);
-  if (parts[0] === "logout") {
-    db.prepare("DELETE FROM sessions WHERE token=?").run(
-      req.cookies.get("session")?.value || "",
-    );
-    const res = json({ ok: true });
-    res.cookies.delete("session");
-    return res;
+  if (parts.length === 1 && parts[0] === "logout") return signOut(req);
+  if (parts[0] === "team") {
+    if (parts.length === 1) return saveTeam(req, u);
+    if (parts.length === 2 && parts[1] === "invitations")
+      return createInvitation(u);
+    return json({ error: "Not found." }, 404);
   }
   if (parts[0] === "pickups") return savePickup(req, parts, u);
   if (parts[0] === "homework") return saveHomework(req, parts, u);

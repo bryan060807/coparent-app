@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { checkPickupApi, checkPickupBrowsers } from "./pickup-checks";
 import { checkFamilyApi, checkFamilyBrowsers } from "./family-checks";
 import { checkHomeworkApi, checkHomeworkBrowsers } from "./homework-checks";
+import { checkTeamApi, checkTeamBrowsers } from "./team-checks";
 import { chromium, expect } from "@playwright/test";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { networkInterfaces, tmpdir } from "node:os";
@@ -330,9 +331,18 @@ try {
   const persistedPickup = await checkPickupApi(base, a, b, c);
   const persistedHomework = await checkHomeworkApi(base, a, b, c);
   const familyIds = await checkFamilyApi(base, a, b, c, dir);
+  const newFamily = await checkTeamApi(base, a, b, c, dir);
   await stop();
   start();
   await ready();
+  const restoredTeam = await (await get("/api/me", newFamily.cookie)).json();
+  assert.equal(restoredTeam.user.id, newFamily.userId);
+  assert.equal(restoredTeam.members.length, 2);
+  assert.equal(restoredTeam.team.name, "Team Bill");
+  assert.equal(
+    (await (await get("/api/me", newFamily.partnerCookie)).json()).team.name,
+    "Team Bill",
+  );
   const restoredPickup = await (
     await fetch(base + "/api/pickups/" + persistedPickup.id, {
       headers: { cookie: b },
@@ -514,6 +524,7 @@ try {
     await checkPickupBrowsers(browser, base, parentBBase);
     await checkHomeworkBrowsers(browser, base, parentBBase);
     await checkFamilyBrowsers(browser, base, parentBBase);
+    await checkTeamBrowsers(browser, base, parentBBase);
   } finally {
     await browser.close();
   }

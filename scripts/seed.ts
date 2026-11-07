@@ -24,6 +24,13 @@ try {
       email,
       hash(password),
     );
+  for (const [household, name] of [
+    ["willow", "Bill"],
+    ["cedar", "Robin"],
+  ])
+    db.prepare(
+      "INSERT OR IGNORE INTO team_settings(household,child_name,version) VALUES(?,?,1)",
+    ).run(household, name);
   db.exec("COMMIT");
 } catch (e) {
   db.exec("ROLLBACK");

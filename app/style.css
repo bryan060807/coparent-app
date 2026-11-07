@@ -69,6 +69,10 @@ header {
   text-transform: uppercase;
   letter-spacing: 0.17em;
   line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.brand > div {
+  min-width: 0;
 }
 .brand span {
   display: block;
@@ -172,6 +176,7 @@ form > button {
 }
 .eyebrow,
 .section-kicker {
+  overflow-wrap: anywhere;
   font: 500 11px/1.6 var(--mono);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -344,6 +349,11 @@ nav button {
 .more-sections .active {
   color: var(--paper);
   background: var(--forest);
+}
+.more-sections button:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
 }
 .cards {
   display: grid;
@@ -799,6 +809,7 @@ footer {
   margin: 14px 0;
 }
 .check-label input[type="checkbox"],
+.check-label input[type="radio"],
 .routine-check input[type="checkbox"] {
   width: 26px;
   height: 26px;
@@ -965,6 +976,80 @@ footer {
   font-size: 24px;
   line-height: 0;
 }
+.auth-switch {
+  margin-top: 15px;
+  width: 100%;
+  font-size: 14px;
+}
+.team-choice {
+  border: 1px solid #a4b297;
+  border-radius: 9px;
+  margin: 24px 0;
+  padding: 10px 16px;
+}
+.team-choice legend {
+  padding: 0 7px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.team-choice .check-label {
+  margin: 0;
+  font-size: 13px;
+}
+.team-settings {
+  overflow-wrap: anywhere;
+}
+.team-preview {
+  background: var(--forest);
+  color: var(--paper);
+  padding: 24px;
+  border-radius: 13px;
+  margin: 24px 0;
+  overflow-wrap: anywhere;
+}
+.team-preview small {
+  display: block;
+  font: 400 11px/1.6 var(--mono);
+  color: #d9c18a;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.team-preview output {
+  display: block;
+  font: 450 40px/1.15 var(--serif);
+  margin-top: 12px;
+}
+.team-members {
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+}
+.team-members li {
+  padding: 16px;
+  overflow-wrap: anywhere;
+}
+.team-members li + li {
+  border-top: 1px dashed var(--line);
+}
+.team-settings .note button {
+  width: 100%;
+}
+.team-settings section > button {
+  margin-top: 16px;
+}
+.team-welcome {
+  background: #eff0e5;
+  border: 1px dashed #a4b297;
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 22px;
+}
+.team-welcome p {
+  margin-top: 0;
+  font-size: 14px;
+}
 @media (min-width: 760px) {
   main {
     padding-top: 36px;
@@ -1010,6 +1095,9 @@ footer {
   }
   .login-story h1 {
     font-size: 44px;
+  }
+  .signup .login-story-copy h1 {
+    display: none;
   }
   .prep-illustration {
     display: none;
