@@ -2,6 +2,8 @@
 
 A private, mobile-first app for school papers, pickup plans, homework, gifts and money, routines and chores, and shared health/personal notes for a fictional six-year-old, Casey Willow. Built with Next.js, TypeScript, and SQLite (Node's built-in `node:sqlite`). No external services or API keys are needed. Repeating pickup/custody schedules, notifications, OCR, a combined household timeline, and deployment remain out of scope.
 
+The interface takes its visual cues from a chef's prep notebook: warm paper, forest green, restrained brass accents, editorial headings, and clear checklists. Plain feature labels, large controls, sticky navigation, visible keyboard focus, and reduced-motion support keep it practical. DM Sans and Newsreader fonts are bundled locally; the app makes no requests to a font service.
+
 ## Install and launch
 
 Use **Node.js 24+** and npm. From the repository root:
@@ -11,6 +13,8 @@ npm ci
 npm run seed
 npm run dev
 ```
+
+For an existing checkout, stop the server, run `git pull --ff-only origin main`, then `npm ci` and `npm run dev`. The visual update adds bundled font dependencies. No reseeding is needed; existing accounts, records, and attachments stay in place. In Windows PowerShell, use `npm.cmd` if the execution policy blocks `npm`.
 
 The development server listens on port 3000 and all interfaces. If 3000 is occupied, Next chooses another port (such as 3001); use the **Local** address printed in the terminal. Open `localhost` on that computer, not the `0.0.0.0` bind address. For two physical phones, both must be able to reach that machine on a trusted local network; remote cloud access is environment-specific. Next's development assets allow this computer's local interface addresses without allowing arbitrary external origins. Restart the dev server after changing networks.
 
@@ -44,7 +48,7 @@ All three use the demo password `Backpack-demo-26!`. These are local development
 
 These are individual pickups, not a repeating custody calendar. Upcoming lists scheduled pickups earliest first, including past times that still need checking off or cancelling. Today highlights the earliest unresolved pickup. Enter times in the browser's displayed local time zone; instants are stored in UTC, and another time zone displays the equivalent local time. Nonexistent times during the spring clock change are rejected. Pickup responsibility is shared information: either household parent may edit, complete, or cancel a plan, with their own identity recorded.
 
-Existing installations need only pull the update and restart `npm run dev`. New pickup tables are created automatically without deleting accounts, school papers, or attachments. No new seed/reset command is required; a new household starts with no pickups.
+New pickup tables are created automatically without deleting accounts, school papers, or attachments. No new seed/reset command is required; a new household starts with no pickups.
 
 ## Homework walkthrough
 
@@ -54,7 +58,7 @@ Existing installations need only pull the update and restart `npm run dev`. New 
 4. When the work is finished, enter a final note and choose **Mark done**. It leaves Today and To do, but remains under **Completed homework** with the named, timestamped activity and earlier notes. Done is final in this version: stale screens cannot reopen or change a finished assignment. Progress moves from Not started to In progress to Done.
 5. Jordan's household cannot list, open, update, or read the activity of Willow homework, including known `/api/homework/{id}` and `/api/homework/{id}/timeline` URLs. Anonymous API requests require sign-in too.
 
-Due dates are date-only values: switching time zones does not shift an assignment to a different due date. Work and notes sync about every three seconds. As with pickups, the new tables are added automatically on restart; existing accounts, papers, pickups, and attachments are retained. No reseeding or new dependency installation is needed for an existing checkout.
+Due dates are date-only values: switching time zones does not shift an assignment to a different due date. Work and notes sync about every three seconds. As with pickups, the new tables are added automatically on restart; existing accounts, papers, pickups, and attachments are retained. No reseeding is needed for an existing checkout.
 
 ## Gifts, money, routines, and family info
 

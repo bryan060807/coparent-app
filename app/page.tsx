@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import PickupPlanner, { NextPickup } from "./pickups";
 import HomeworkPlanner, { HomeworkToday } from "./homework";
 import FamilySection, { RoutineSummary } from "./family";
+import { Brand, Icon, EmptyMark, PrepIllustration } from "./ui";
 type Member = { id: string; name: string };
 type Paper = {
   id: string;
@@ -56,6 +57,10 @@ export default function Home() {
     [note, setNote] = useState(""),
     [key, setKey] = useState(""),
     [notice, setNotice] = useState("");
+  useEffect(() => {
+    // Sticky navigation stays reachable on long lists; open the next view at its top.
+    window.scrollTo(0, 0);
+  }, [view, selected?.id, homeworkId, me?.id]);
   const refresh = useCallback(async () => {
     const request = ++authRequest.current;
     try {
@@ -200,42 +205,59 @@ export default function Home() {
   if (!me)
     return (
       <main className="login">
-        <div className="brand">
-          TWO HOMES <span> / one team</span>
-        </div>
-        <h1>
-          Less to remember.
-          <br />
-          More shared.
-        </h1>
-        <p>
-          School papers, from the backpack
-          <br />
-          back to school.
-        </p>
-        <form onSubmit={login}>
-          <h2>Sign in</h2>
-          <label>
-            Email
-            <input name="email" type="email" autoComplete="username" required />
-          </label>
-          <label>
-            Password
-            <input
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-            />
-          </label>
-          {error && (
-            <p role="alert" className="error">
-              {error}
+        <section className="login-story">
+          <Brand />
+          <div className="login-story-copy">
+            <p className="section-kicker">The family notebook</p>
+            <h1>
+              Less to remember.
+              <br />
+              <em>More shared.</em>
+            </h1>
+            <p>A little mise en place for life between two homes.</p>
+          </div>
+          <PrepIllustration />
+          <p className="login-story-foot">
+            Two homes. One thoughtfully shared day.
+          </p>
+        </section>
+        <section className="login-panel">
+          <p className="section-kicker">Your place at the table</p>
+          <form onSubmit={login}>
+            <h2>Sign in</h2>
+            <p className="muted">
+              The details of family life, all in one place.
             </p>
-          )}
-          <button disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
-        </form>
-        <p className="muted">A private space for your household.</p>
+            <label>
+              Email
+              <input
+                name="email"
+                type="email"
+                autoComplete="username"
+                required
+              />
+            </label>
+            <label>
+              Password
+              <input
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+              />
+            </label>
+            {error && (
+              <p role="alert" className="error">
+                {error}
+              </p>
+            )}
+            <button disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
+          </form>
+          <p className="login-privacy">
+            <span aria-hidden="true">·</span> A private space for your
+            household.
+          </p>
+        </section>
       </main>
     );
   const list = papers.filter((p) =>
@@ -244,11 +266,9 @@ export default function Home() {
   return (
     <main>
       <header>
-        <div className="brand">
-          TWO HOMES <span> / one team</span>
-        </div>
+        <Brand />
         <button
-          className="text"
+          className="text signout"
           onClick={async () => {
             await fetch("/api/logout", { method: "POST" });
             ++authRequest.current;
@@ -260,7 +280,8 @@ export default function Home() {
             setNotice("");
           }}
         >
-          Sign out
+          <Icon name="logout" />
+          <span>Sign out</span>
         </button>
       </header>
       <p className="eyebrow">Hi, {me.name.split(" ")[0]} · YOUR HOUSEHOLD</p>
@@ -308,7 +329,7 @@ export default function Home() {
             target="_blank"
             rel="noreferrer"
           >
-            ↗ Open original attachment
+            <Icon name="paper" /> Open original attachment
           </a>
           {selected.note && (
             <div className="note">
@@ -373,83 +394,90 @@ export default function Home() {
         </>
       ) : (
         <>
-          <nav aria-label="Household" className="household-nav">
-            <button
-              className={view === "today" ? "active" : "text"}
-              onClick={() => {
-                setView("today");
-                setMoreOpen(false);
-                setError("");
-              }}
-            >
-              Today
-            </button>
-            <button
-              className={view === "pickups" ? "active" : "text"}
-              onClick={() => {
-                setView("pickups");
-                setMoreOpen(false);
-                setError("");
-                setNotice("");
-              }}
-            >
-              Pickups
-            </button>
-            <button
-              className={view === "homework" ? "active" : "text"}
-              onClick={() => {
-                setView("homework");
-                setMoreOpen(false);
-                setHomeworkId(undefined);
-                setError("");
-                setNotice("");
-              }}
-            >
-              Homework
-            </button>
-            <button
-              className={
-                moreOpen ||
-                ["history", "gifts", "routines", "info"].includes(view)
-                  ? "active"
-                  : "text"
-              }
-              aria-expanded={moreOpen}
-              aria-controls="more-sections"
-              onClick={() => setMoreOpen(!moreOpen)}
-            >
-              More
-            </button>
-          </nav>
-          {moreOpen && (
-            <nav
-              id="more-sections"
-              aria-label="More sections"
-              className="more-sections"
-            >
-              {(
-                [
-                  { view: "gifts", label: "Gifts & money" },
-                  { view: "routines", label: "Routines & chores" },
-                  { view: "info", label: "Health & personal info" },
-                  { view: "history", label: "Paper history" },
-                ] as const
-              ).map((link) => (
-                <button
-                  className={view === link.view ? "active" : "secondary"}
-                  key={link.view}
-                  onClick={() => {
-                    setView(link.view);
-                    setMoreOpen(false);
-                    setError("");
-                    setNotice("");
-                  }}
-                >
-                  {link.label}
-                </button>
-              ))}
+          <div className="app-navigation">
+            <nav aria-label="Household" className="household-nav">
+              <button
+                className={view === "today" ? "active" : "text"}
+                onClick={() => {
+                  setView("today");
+                  setMoreOpen(false);
+                  setError("");
+                }}
+              >
+                <Icon name="today" />
+                <span>Today</span>
+              </button>
+              <button
+                className={view === "pickups" ? "active" : "text"}
+                onClick={() => {
+                  setView("pickups");
+                  setMoreOpen(false);
+                  setError("");
+                  setNotice("");
+                }}
+              >
+                <Icon name="pickups" />
+                <span>Pickups</span>
+              </button>
+              <button
+                className={view === "homework" ? "active" : "text"}
+                onClick={() => {
+                  setView("homework");
+                  setMoreOpen(false);
+                  setHomeworkId(undefined);
+                  setError("");
+                  setNotice("");
+                }}
+              >
+                <Icon name="homework" />
+                <span>Homework</span>
+              </button>
+              <button
+                className={
+                  moreOpen ||
+                  ["history", "gifts", "routines", "info"].includes(view)
+                    ? "active"
+                    : "text"
+                }
+                aria-expanded={moreOpen}
+                aria-controls="more-sections"
+                onClick={() => setMoreOpen(!moreOpen)}
+              >
+                <Icon name="more" />
+                <span>More</span>
+              </button>
             </nav>
-          )}
+            {moreOpen && (
+              <nav
+                id="more-sections"
+                aria-label="More sections"
+                className="more-sections"
+              >
+                {(
+                  [
+                    { view: "gifts", label: "Gifts & money" },
+                    { view: "routines", label: "Routines & chores" },
+                    { view: "info", label: "Health & personal info" },
+                    { view: "history", label: "Paper history" },
+                  ] as const
+                ).map((link) => (
+                  <button
+                    className={view === link.view ? "active" : "secondary"}
+                    key={link.view}
+                    onClick={() => {
+                      setView(link.view);
+                      setMoreOpen(false);
+                      setError("");
+                      setNotice("");
+                    }}
+                  >
+                    <Icon name={link.view} />
+                    <span>{link.label}</span>
+                  </button>
+                ))}
+              </nav>
+            )}
+          </div>
           {view === "gifts" || view === "routines" || view === "info" ? (
             <FamilySection
               key={me.id + ":" + view}
@@ -526,15 +554,23 @@ export default function Home() {
             </>
           ) : (
             <>
+              {view === "today" && (
+                <p className="section-kicker">Your daily mise en place</p>
+              )}
               <div className="heading">
                 <h1>{view === "today" ? "Today" : "History"}</h1>
                 <span className="count">
-                  {list.length} {view === "history" ? "returned" : "papers"}
+                  {list.length}{" "}
+                  {view === "history"
+                    ? "returned"
+                    : list.length === 1
+                      ? "paper"
+                      : "papers"}
                 </span>
               </div>
               <p className="intro">
                 {view === "today"
-                  ? "A little clarity between two homes. Due soonest comes first."
+                  ? "A little preparation. A smoother handoff. Due soonest comes first."
                   : "Returned to school. Kept here for peace of mind."}
               </p>
               {view === "today" && (
@@ -551,7 +587,7 @@ export default function Home() {
                     setNotice("");
                   }}
                 >
-                  ＋ Add school paper
+                  <Icon name="paper" /> Add school paper
                 </button>
               )}
               {view === "today" && (
@@ -584,7 +620,7 @@ export default function Home() {
               )}
               {list.length === 0 ? (
                 <section className="empty">
-                  <div className="folder">▱</div>
+                  <EmptyMark />
                   <h2>
                     {view === "history"
                       ? "No returned papers yet"

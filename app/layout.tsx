@@ -1,3 +1,6 @@
+import "@fontsource-variable/dm-sans/index.css";
+import "@fontsource-variable/newsreader/index.css";
+import "@fontsource-variable/newsreader/wght-italic.css";
 import "./style.css";
 export const metadata = {
   title: "Two Homes · Family handoffs",

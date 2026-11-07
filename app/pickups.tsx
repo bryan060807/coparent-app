@@ -68,7 +68,25 @@ export function NextPickup({ onOpen }: { onOpen: () => void }) {
         <p role="status">{error}</p>
       ) : next ? (
         <>
-          <p className="pickup-time">{when(next.scheduled_at)}</p>
+          <p className="pickup-time">
+            <time dateTime={next.scheduled_at}>
+              <span className="pickup-date">
+                {new Date(next.scheduled_at).toLocaleDateString(undefined, {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </span>
+              <span className="pickup-clock">
+                {new Date(next.scheduled_at).toLocaleTimeString(undefined, {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  timeZoneName: "short",
+                })}
+              </span>
+            </time>
+          </p>
           <p>
             <strong>{next.title}</strong> · {next.location}
           </p>
