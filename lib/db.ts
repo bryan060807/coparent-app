@@ -2,7 +2,9 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
-export const dataDir = path.resolve(process.env.DATA_DIR || "./data");
+export const dataDir = path.resolve(
+  /* turbopackIgnore: true */ process.env.DATA_DIR || "./data",
+);
 mkdirSync(path.join(dataDir, "attachments"), { recursive: true, mode: 0o700 });
 // Keep one initialized connection per database across Next.js development reloads.
 // Authentication and household membership are still checked on every request.

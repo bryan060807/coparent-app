@@ -596,7 +596,9 @@ export async function checkFamilyBrowsers(
       pb.getByRole("checkbox", { name: "Brush teeth", exact: true }),
     ).not.toBeChecked({ timeout: 10000 });
     await pa.getByRole("button", { name: "Edit record", exact: true }).click();
-    await pa.getByLabel("Applies at").selectOption("alex");
+    await pa
+      .getByLabel("Applies at")
+      .selectOption({ label: "Alex Willow’s home" });
     await pa.getByLabel("Time", { exact: false }).fill("08:00");
     await pa.getByRole("button", { name: "Save record" }).click();
     await pa.getByRole("button", { name: /Back to Routines/ }).click();
@@ -630,14 +632,18 @@ export async function checkFamilyBrowsers(
     await expect(
       pb.getByRole("checkbox", { name: "Put toys away", exact: true }),
     ).toBeVisible({ timeout: 10000 });
-    await pb.getByLabel("Show homes").selectOption("alex");
+    await pb
+      .getByLabel("Show homes")
+      .selectOption({ label: "Alex Willow’s home" });
     await expect(
       pb.getByRole("checkbox", { name: "Brush teeth", exact: true }),
     ).toBeVisible();
     await expect(
       pb.getByRole("checkbox", { name: "Put toys away", exact: true }),
     ).toBeVisible();
-    await pb.getByLabel("Show homes").selectOption("sam");
+    await pb
+      .getByLabel("Show homes")
+      .selectOption({ label: "Sam Willow’s home" });
     await expect(
       pb.getByRole("checkbox", { name: "Brush teeth", exact: true }),
     ).toHaveCount(0);
@@ -780,6 +786,7 @@ export async function checkFamilyBrowsers(
     assert.equal(
       (
         await ca.request.post(base + "/api/login", {
+          headers: { origin: base },
           data: { email: "jordan@example.test", password: "Backpack-demo-26!" },
         })
       ).status(),

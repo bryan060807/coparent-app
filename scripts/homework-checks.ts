@@ -389,6 +389,7 @@ export async function checkHomeworkBrowsers(
       assert.equal(
         (
           await ca.request.post(base + "/api/homework", {
+            headers: { origin: base },
             data: { title, due, note: "", key: randomUUID() },
           })
         ).status(),

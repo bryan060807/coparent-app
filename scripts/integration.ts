@@ -19,6 +19,8 @@ const localIp = Object.values(networkInterfaces())
 const parentBBase = `http://127.0.0.1:${port}`;
 const env: NodeJS.ProcessEnv = {
   ...process.env,
+  APP_BACKEND: "sqlite",
+  VERCEL: "0",
   DATA_DIR: dir,
   NODE_ENV: development ? "development" : "test",
   COOKIE_SECURE: "false",

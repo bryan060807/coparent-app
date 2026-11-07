@@ -7,6 +7,7 @@ import { Brand, Icon, EmptyMark } from "./ui";
 import AuthScreen from "./auth";
 import TeamSettings from "./team";
 import { APP_NAME, type Team } from "../lib/team-types";
+import { uploadSchoolPaper } from "../lib/cloud/upload";
 type Member = { id: string; name: string };
 type Paper = {
   id: string;
@@ -37,10 +38,13 @@ const date = (s: string) =>
 export default function Home() {
   const authRequest = useRef(0);
   const account = useRef<string | null>(null);
+  const uploaded = useRef<string | null>(null);
   const [me, setMe] = useState<Member | null>(null),
     [team, setTeam] = useState<Team | null>(null),
     [members, setMembers] = useState<Member[]>([]),
     [loading, setLoading] = useState(true),
+    [onboarding, setOnboarding] = useState(false),
+    [directUploads, setDirectUploads] = useState(false),
     [papers, setPapers] = useState<Paper[]>([]),
     [view, setView] = useState<
       | "today"
@@ -78,6 +82,7 @@ export default function Home() {
         account.current = null;
         setMe(null);
         setTeam(null);
+        setOnboarding(false);
         setSelected(null);
         setPapers([]);
         setLoading(false);
@@ -86,6 +91,17 @@ export default function Home() {
       if (!r.ok) throw Error();
       const m = await r.json();
       if (request !== authRequest.current) return;
+      if (m.onboardingRequired) {
+        account.current = null;
+        setMe(null);
+        setTeam(null);
+        setSelected(null);
+        setPapers([]);
+        setMembers([]);
+        setOnboarding(true);
+        setLoading(false);
+        return;
+      }
       // A login in another tab can replace the cookie without an intervening
       // 401. Clear the previous account's screen before showing the new user.
       if (account.current !== m.user.id) {
@@ -99,6 +115,8 @@ export default function Home() {
         setError("");
       }
       setMe(m.user);
+      setOnboarding(false);
+      setDirectUploads(m.uploads === "direct");
       setTeam(m.team);
       setMembers(m.members);
       const p = await fetch("/api/papers");
@@ -123,10 +141,14 @@ export default function Home() {
     if (!selected) return;
     let live = true;
     const id = selected.id;
+    const owner = account.current;
     const update = async () => {
       try {
         const r = await fetch("/api/papers/" + id);
-        if (r.ok && live) setSelected(await r.json());
+        if (r.ok) {
+          const latest = await r.json();
+          if (live && account.current === owner) setSelected(latest);
+        }
       } catch {
         /* next polling cycle retries */
       }
@@ -145,7 +167,25 @@ export default function Home() {
     const f = new FormData(e.currentTarget);
     f.set("key", key);
     try {
-      const r = await fetch("/api/papers", { method: "POST", body: f });
+      let r: Response;
+      if (directUploads) {
+        const file = f.get("file");
+        if (!(file instanceof File))
+          throw Error("Choose a photo or PDF first.");
+        if (!uploaded.current) uploaded.current = await uploadSchoolPaper(file);
+        r = await fetch("/api/papers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: f.get("title"),
+            due: f.get("due"),
+            assignee: f.get("assignee"),
+            key,
+            uploadId: uploaded.current,
+          }),
+        });
+        if (r.status === 400 || r.status === 404) uploaded.current = null;
+      } else r = await fetch("/api/papers", { method: "POST", body: f });
       const b = await r.json();
       if (!r.ok) throw Error(b.error);
       await refresh();
@@ -159,6 +199,7 @@ export default function Home() {
   }
   async function advance(status: string) {
     if (!selected) return;
+    const owner = account.current;
     setBusy(true);
     setError("");
     try {
@@ -168,9 +209,15 @@ export default function Home() {
         body: JSON.stringify({ status, note }),
       });
       const b = await r.json();
+      if (account.current !== owner) return;
       const latest = await fetch("/api/papers/" + selected.id);
-      if (latest.ok) setSelected(await latest.json());
+      if (latest.ok) {
+        const paper = await latest.json();
+        if (account.current !== owner) return;
+        setSelected(paper);
+      }
       await refresh();
+      if (account.current !== owner) return;
       if (!r.ok) throw Error(b.error);
       setNote("");
       setNotice(
@@ -179,6 +226,7 @@ export default function Home() {
           : "Returned. This paper is saved in History.",
       );
     } catch (e) {
+      if (account.current !== owner) return;
       setError(
         e instanceof Error ? e.message : "Update failed. You can retry safely.",
       );
@@ -192,7 +240,14 @@ export default function Home() {
         <p>Opening your household…</p>
       </main>
     );
-  if (!me) return <AuthScreen onAuthenticated={refresh} />;
+  if (!me)
+    return (
+      <AuthScreen
+        key={onboarding ? "onboarding" : "auth"}
+        onboarding={onboarding}
+        onAuthenticated={refresh}
+      />
+    );
   const list = papers.filter((p) =>
     view === "history" ? p.status === "returned" : p.status !== "returned",
   );
@@ -212,6 +267,7 @@ export default function Home() {
               account.current = null;
               setMe(null);
               setTeam(null);
+              setOnboarding(false);
               setSelected(null);
               setPapers([]);
               setMembers([]);
@@ -502,6 +558,10 @@ export default function Home() {
                   Photo or PDF
                   <input
                     name="file"
+                    disabled={busy}
+                    onChange={() => {
+                      uploaded.current = null;
+                    }}
                     type="file"
                     accept="image/jpeg,image/png,application/pdf"
                     required
@@ -552,6 +612,7 @@ export default function Home() {
                 <button
                   onClick={() => {
                     setView("add");
+                    uploaded.current = null;
                     setKey(
                       Array.from(
                         crypto.getRandomValues(new Uint8Array(16)),
@@ -614,14 +675,18 @@ export default function Home() {
                       className="card"
                       key={p.id}
                       onClick={async () => {
+                        const owner = me.id;
                         setError("");
                         setNotice("");
                         try {
                           const r = await fetch("/api/papers/" + p.id);
                           if (!r.ok) throw Error();
-                          setSelected(await r.json());
+                          const paper = await r.json();
+                          if (account.current !== owner) return;
+                          setSelected(paper);
                           setNote("");
                         } catch {
+                          if (account.current !== owner) return;
                           setError("Could not open this paper. Try again.");
                         }
                       }}

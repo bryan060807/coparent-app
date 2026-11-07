@@ -257,7 +257,9 @@ export async function checkPickupBrowsers(
     await pa.getByRole("button", { name: "Add pickup", exact: false }).click();
     await pa.getByLabel("Date and time").fill("2060-05-10T15:15");
     await pa.getByLabel("Pickup location").fill("Willow Primary, front gate");
-    await pa.getByLabel("Who’s picking up?").selectOption("sam");
+    await pa
+      .getByLabel("Who’s picking up?")
+      .selectOption({ label: "Sam Willow" });
     await pa.getByLabel("Pickup note").fill("Bring the blue folder.");
     await pa.getByLabel("Date and time").fill("2027-03-14T02:30");
     await pa.getByRole("button", { name: "Add pickup", exact: true }).click();
@@ -290,7 +292,9 @@ export async function checkPickupBrowsers(
     await pb.getByRole("button", { name: "Edit pickup", exact: true }).click();
     await pb.getByLabel("Date and time").fill("2060-05-10T14:45");
     await pb.getByLabel("Pickup location").fill("Willow Primary, side gate");
-    await pb.getByLabel("Who’s picking up?").selectOption("alex");
+    await pb
+      .getByLabel("Who’s picking up?")
+      .selectOption({ label: "Alex Willow" });
     await pb.getByLabel("Pickup note").fill("Meet at the side gate.");
     await pb.getByRole("button", { name: "Save changes" }).click();
     await expect(

@@ -26,13 +26,13 @@ function worker(source: string, dir: string, args: string[] = []) {
     ["--import", "tsx", "--input-type=module", "-e", source, ...args],
     {
       env: { ...process.env, DATA_DIR: dir },
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: ["ignore", "pipe", "pipe", "ipc"],
     },
   );
   let stdout = "",
     stderr = "";
-  child.stdout.on("data", (b) => (stdout += b));
-  child.stderr.on("data", (b) => (stderr += b));
+  child.stdout!.on("data", (b) => (stdout += b));
+  child.stderr!.on("data", (b) => (stderr += b));
   const done = new Promise<{
     code: number | null;
     stdout: string;
@@ -45,12 +45,12 @@ function worker(source: string, dir: string, args: string[] = []) {
 }
 async function lock(dir: string, filename: string, duration: number) {
   const job = worker(
-    `import {DatabaseSync} from 'node:sqlite'; const db=new DatabaseSync(process.argv[1]); db.exec("BEGIN IMMEDIATE; UPDATE sentinel SET value='pending'"); console.log('LOCKED'); setTimeout(()=>{db.exec('ROLLBACK'); db.close();},${duration});`,
+    `import {DatabaseSync} from 'node:sqlite'; const db=new DatabaseSync(process.argv[1]); db.exec("BEGIN IMMEDIATE; UPDATE sentinel SET value='pending'"); let released=false; const release=()=>{if(released)return;released=true;db.exec('ROLLBACK');db.close();process.disconnect();}; process.once('message',release); console.log('LOCKED'); if(${duration}>0)setTimeout(release,${duration});`,
     dir,
     [filename],
   );
   await new Promise<void>((resolve, reject) => {
-    job.child.stdout.once("data", () => resolve());
+    job.child.stdout!.once("data", () => resolve());
     job.child.once("error", reject);
     void job.done.then((result) => {
       if (result.code !== 0) reject(Error(result.stderr));
@@ -135,7 +135,9 @@ test(
     const f = fixture("WAL");
     let holder: Awaited<ReturnType<typeof lock>> | undefined;
     try {
-      holder = await lock(f.dir, f.filename, 6500);
+      // Hold until the contender has actually timed out. A fixed timer can
+      // expire during slow process startup and turn this into a timing lottery.
+      holder = await lock(f.dir, f.filename, 0);
       const began = Date.now();
       const result = await worker(
         `import assert from 'node:assert/strict'; await assert.rejects(import('./lib/db.ts'),/database is busy/); assert.equal(globalThis.__twoHomesDatabases.size,0); console.log('EXPECTED_BUSY');`,
@@ -147,6 +149,7 @@ test(
         Date.now() - began >= 4500,
         "the configured timeout should run before failing",
       );
+      holder.child.send!("release");
       await holder.done;
       const retry = await worker(ready, f.dir).done;
       assert.equal(retry.code, 0, retry.stderr);

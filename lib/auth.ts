@@ -1,3 +1,4 @@
+import { readJson } from "./request";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { db, hash, verify, type User } from "./db";
@@ -17,29 +18,7 @@ export function currentUser(req: NextRequest): User | undefined {
     )
     .get(sessionKey(token), token, Date.now()) as User | undefined;
 }
-export async function readJson(req: Request): Promise<Record<string, unknown>> {
-  const reader = req.body?.getReader();
-  if (!reader) throw Error("Enter the form details.");
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    size += value.length;
-    if (size > 8192) {
-      await reader.cancel();
-      throw Error("The form is too large. Keep each field within its limit.");
-    }
-    chunks.push(value);
-  }
-  try {
-    const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-    if (!body || typeof body !== "object" || Array.isArray(body)) throw Error();
-    return body;
-  } catch {
-    throw Error("Enter valid form details.");
-  }
-}
+export { readJson } from "./request";
 function emailAddress(value: unknown): string | null {
   if (typeof value !== "string" || value.length > 254) return null;
   const email = value.trim().toLowerCase();

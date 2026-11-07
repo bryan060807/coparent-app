@@ -1,5 +1,7 @@
 # Team · Their name. Your team.
 
+For hosted parent testing with **Supabase + Vercel + Cloudflare**, see [DEPLOYMENT.md](DEPLOYMENT.md). The local SQLite setup below remains available. Hosted accounts, records, and attachments live in Supabase; local data is not automatically uploaded.
+
 A private, mobile-first app named after the child at its heart: **Team Bill**, Team Maya, or the name/nickname your family chooses. Both parents are on the same team, across two homes. The app handles school papers, pickup plans, homework, gifts and money, routines and chores, and shared health/personal notes. Fictional examples use six-year-old Bill Willow. Built with Next.js, TypeScript, and SQLite (Node's built-in `node:sqlite`). No external services or API keys are needed. Repeating pickup/custody schedules, notifications, OCR, a combined household timeline, and deployment remain out of scope.
 
 The interface takes its visual cues from a chef's prep notebook: warm paper, forest green, restrained brass accents, editorial headings, and clear checklists. Plain feature labels, large controls, sticky navigation, visible keyboard focus, and reduced-motion support keep it practical. DM Sans and Newsreader fonts are bundled locally; the app makes no requests to a font service.

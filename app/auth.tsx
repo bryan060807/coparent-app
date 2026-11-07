@@ -1,17 +1,28 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Brand, PrepIllustration } from "./ui";
 import { teamName } from "../lib/team-types";
 export default function AuthScreen({
   onAuthenticated,
+  onboarding = false,
 }: {
   onAuthenticated: () => Promise<void>;
+  onboarding?: boolean;
 }) {
-  const [signup, setSignup] = useState(false),
+  const [signup, setSignup] = useState(onboarding),
     [mode, setMode] = useState<"create" | "join">("create"),
     [childName, setChildName] = useState(""),
     [busy, setBusy] = useState(false),
+    [notice, setNotice] = useState(""),
     [error, setError] = useState("");
+  useEffect(() => {
+    if (
+      new URLSearchParams(window.location.search).get("auth") === "confirmation"
+    )
+      setNotice(
+        "Sign in to continue. If the confirmation link did not finish, open it in the browser where you created your account.",
+      );
+  }, []);
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (busy) return;
@@ -19,13 +30,21 @@ export default function AuthScreen({
     setBusy(true);
     setError("");
     try {
-      const r = await fetch(signup ? "/api/signup" : "/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...fields, mode }),
-      });
+      const r = await fetch(
+        onboarding ? "/api/onboarding" : signup ? "/api/signup" : "/api/login",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...fields, mode }),
+        },
+      );
       const body = await r.json();
       if (!r.ok) throw Error(body.error);
+      if (body.needsConfirmation) {
+        setNotice(body.message);
+        setSignup(false);
+        return;
+      }
       await onAuthenticated();
     } catch (e) {
       setError(
@@ -62,11 +81,19 @@ export default function AuthScreen({
       <section className="login-panel">
         <p className="section-kicker">Your place at the table</p>
         <form onSubmit={submit} key={signup ? "signup" : "login"}>
-          <h2>{signup ? "Create your account" : "Sign in"}</h2>
+          <h2>
+            {onboarding
+              ? "Finish your team setup"
+              : signup
+                ? "Create your account"
+                : "Sign in"}
+          </h2>
           <p className="muted">
-            {signup
-              ? "One account for each parent. One shared team."
-              : "The details of family life, all in one place."}
+            {onboarding
+              ? "Your account is ready. Create your team or join the other parent."
+              : signup
+                ? "One account for each parent. One shared team."
+                : "The details of family life, all in one place."}
           </p>
           {signup && (
             <label>
@@ -74,32 +101,38 @@ export default function AuthScreen({
               <input name="name" autoComplete="name" maxLength={80} required />
             </label>
           )}
-          <label>
-            Email
-            <input
-              name="email"
-              type="email"
-              autoComplete="username"
-              maxLength={254}
-              required
-            />
-          </label>
-          <label>
-            Password
-            <input
-              name="password"
-              type="password"
-              autoComplete={signup ? "new-password" : "current-password"}
-              minLength={signup ? 12 : undefined}
-              maxLength={200}
-              required
-            />
-          </label>
+          {!onboarding && (
+            <>
+              <label>
+                Email
+                <input
+                  name="email"
+                  type="email"
+                  autoComplete="username"
+                  maxLength={254}
+                  required
+                />
+              </label>
+              <label>
+                Password
+                <input
+                  name="password"
+                  type="password"
+                  autoComplete={signup ? "new-password" : "current-password"}
+                  minLength={signup ? 12 : undefined}
+                  maxLength={200}
+                  required
+                />
+              </label>
+            </>
+          )}
           {signup && (
             <>
-              <p className="muted">
-                Use at least 12 characters for your password.
-              </p>
+              {!onboarding && (
+                <p className="muted">
+                  Use at least 12 characters for your password.
+                </p>
+              )}
               <fieldset className="team-choice">
                 <legend>Your team</legend>
                 <label className="check-label">
@@ -157,7 +190,7 @@ export default function AuthScreen({
                     Invitation code
                     <input
                       name="invite"
-                      maxLength={24}
+                      maxLength={64}
                       autoComplete="off"
                       autoCapitalize="none"
                       spellCheck={false}
@@ -178,25 +211,49 @@ export default function AuthScreen({
               {error}
             </p>
           )}
+          {notice && (
+            <p role="status" className="notice">
+              {notice}
+            </p>
+          )}
           <button disabled={busy}>
-            {busy
-              ? signup
-                ? "Creating account…"
-                : "Signing in…"
-              : signup
-                ? "Create account"
-                : "Sign in"}
+            {onboarding
+              ? busy
+                ? "Setting up your team…"
+                : "Continue to your team"
+              : busy
+                ? signup
+                  ? "Creating account…"
+                  : "Signing in…"
+                : signup
+                  ? "Create account"
+                  : "Sign in"}
           </button>
         </form>
         <button
           className="text auth-switch"
           disabled={busy}
           onClick={() => {
+            if (onboarding) {
+              setBusy(true);
+              void fetch("/api/logout", { method: "POST" })
+                .then((r) => {
+                  if (!r.ok) throw Error("Could not sign out. Please retry.");
+                  return onAuthenticated();
+                })
+                .catch((e) => setError(e.message))
+                .finally(() => setBusy(false));
+              return;
+            }
             setSignup(!signup);
             setError("");
           }}
         >
-          {signup ? "Already have an account? Sign in" : "Create an account"}
+          {onboarding
+            ? "Use a different account"
+            : signup
+              ? "Already have an account? Sign in"
+              : "Create an account"}
         </button>
         <p className="login-privacy">
           <span aria-hidden="true">·</span>A private space for your household.
