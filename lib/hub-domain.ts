@@ -1,3 +1,4 @@
+import { themes, fonts, backgrounds, normalizedAppearance } from "./appearance";
 import { createHash, randomUUID } from "node:crypto";
 import {
   defaultAppearance,
@@ -32,30 +33,55 @@ export function appearance(v: unknown): Appearance {
   const p = v as Appearance;
   if (
     !p ||
-    !["forest", "ocean", "sunset", "berry"].includes(p.theme) ||
-    !["friendly", "simple", "editorial"].includes(p.font) ||
+    !themes.some((t) => t.id === p.theme) ||
+    !fonts.some((f) => f.id === p.font) ||
     typeof p.background !== "string" ||
-    !/^(plain|confetti|waves|photo:[a-f0-9-]{36})$/.test(p.background) ||
+    !(
+      backgrounds.some((b) => b.id === p.background) ||
+      /^photo:[a-f0-9-]{36}$/.test(p.background)
+    ) ||
     typeof p.largeText !== "boolean" ||
     typeof p.reduceMotion !== "boolean"
   )
     throw new HubError("Choose valid appearance settings.");
-  return {
-    theme: p.theme,
-    font: p.font,
-    background: p.background,
-    largeText: p.largeText,
-    reduceMotion: p.reduceMotion,
-  };
+  const a = normalizedAppearance(p);
+  if (
+    !["small", "standard", "large", "extra"].includes(a.textSize) ||
+    !["comfortable", "compact"].includes(a.spacing) ||
+    !["soft", "outlined", "flat"].includes(a.cardStyle) ||
+    !Number.isInteger(a.photoOverlay) ||
+    a.photoOverlay < 65 ||
+    a.photoOverlay > 95 ||
+    typeof a.highContrast !== "boolean" ||
+    typeof a.dashboardSummaries !== "boolean" ||
+    !["system", "12h", "24h"].includes(a.timeFormat) ||
+    !["today", "chat", "gallery", "routines", "rewards", "resources"].includes(
+      a.startPage,
+    )
+  )
+    throw new HubError("Choose valid app settings.");
+  return a;
 }
-export const profileFor = (s: HubState, a: HubActor): Profile =>
-  s.profiles[a.id] ?? {
+export function profileFor(s: HubState, a: HubActor): Profile {
+  const stored = s.profiles[a.id];
+  const p = stored ?? {
     name: a.name,
     about: "",
     avatar: "🌟",
     appearance: { ...defaultAppearance },
     version: 0,
   };
+  const inherit =
+    a.role === "child" && (stored?.inheritChildAppearance ?? !stored);
+  return {
+    ...p,
+    appearance: normalizedAppearance(
+      inherit ? s.childSettings?.appearance : p.appearance,
+    ),
+    settingsVersion: p.settingsVersion ?? 0,
+    inheritChildAppearance: inherit,
+  };
+}
 export const balanceFor = (s: HubState, awards: Award[]) =>
   awards.filter((a) => a.active).length +
   s.recognitions.reduce((n, r) => n + r.stars, 0) -
@@ -95,7 +121,12 @@ export function mutateHub(
       );
     return false;
   }
-  if (a.role === "child" && op !== "requestReward" && op !== "profile")
+  if (
+    a.role === "child" &&
+    op !== "requestReward" &&
+    op !== "profile" &&
+    op !== "settings"
+  )
     throw new HubError("A parent needs to do that.", 403);
   const base = (): HubItem => ({
     id: randomUUID(),
@@ -128,23 +159,64 @@ export function mutateHub(
         "Your profile changed. Load the latest settings.",
         409,
       );
+    s.profiles[a.id] = {
+      ...old,
+      appearance: s.profiles[a.id]?.appearance ?? old.appearance,
+      name: a.role === "child" ? a.name : text(b.name, 80, true),
+      about: text(b.about, 300),
+      avatar: text(b.avatar, 8, true),
+      version: old.version + 1,
+    };
+  } else if (op === "settings" || op === "childSettings") {
+    if (op === "childSettings" && a.role !== "parent")
+      throw new HubError("A parent needs to set the child defaults.", 403);
+    const old = profileFor(s, a),
+      child = op === "childSettings";
+    const currentVersion = child
+      ? (s.childSettings?.version ?? 0)
+      : (old.settingsVersion ?? 0);
+    if (b.version !== currentVersion)
+      throw new HubError(
+        "These settings changed. Your draft is kept; load the saved settings.",
+        409,
+      );
     const p = appearance(b.appearance);
+    if (
+      (a.role === "child" || child) &&
+      !["today", "gallery", "rewards", "resources"].includes(
+        p.startPage ?? "today",
+      )
+    )
+      throw new HubError("Choose a child-friendly start page.");
     if (
       p.background.startsWith("photo:") &&
       !s.photos.some(
         (x) =>
           x.id === p.background.slice(6) &&
-          (a.role === "parent" || x.childVisible),
+          ((a.role === "parent" && !child) || x.childVisible),
       )
     )
-      throw new HubError("Choose a photo you can access.");
-    s.profiles[a.id] = {
-      name: a.role === "child" ? a.name : text(b.name, 80, true),
-      about: text(b.about, 300),
-      avatar: text(b.avatar, 8, true),
-      appearance: p,
-      version: old.version + 1,
-    };
+      throw new HubError("Choose a photo shared with this account.");
+    if (child) {
+      s.childSettings = {
+        appearance: p,
+        locationAllowed: checked(b.locationAllowed),
+        version: currentVersion + 1,
+      };
+      if (!s.childSettings.locationAllowed && s.child) {
+        if (s.locations) delete s.locations[s.child.id];
+        s.locationVersions ??= {};
+        s.locationVersions[s.child.id] =
+          (s.locationVersions[s.child.id] ?? 0) + 1;
+      }
+    } else
+      s.profiles[a.id] = {
+        ...old,
+        appearance: p,
+        settingsVersion: currentVersion + 1,
+        inheritChildAppearance:
+          a.role === "child" ? checked(b.inheritChildAppearance) : false,
+      };
   } else if (op === "resource") {
     const url = text(b.url, 1000);
     if (url) {

@@ -1,0 +1,373 @@
+:root[data-theme="midnight"] {
+  color-scheme: dark;
+  --canvas: #101c2a;
+  --paper: #172434;
+  --surface: #1c2c3e;
+  --ink: #e8edf5;
+  --forest: #b2d6ee;
+  --forest-light: #8abbdc;
+  --muted: #b5c4d5;
+  --line: #4c627b;
+  --butter: #293e51;
+  --brass-ink: #f0d69a;
+  --tomato: #ffb2a4;
+}
+:root[data-theme="sand"] {
+  --canvas: #eee6d9;
+  --paper: #fbf4e9;
+  --surface: #fffaf1;
+  --ink: #443829;
+  --forest: #715034;
+  --forest-light: #835f3e;
+  --muted: #75654f;
+  --line: #d9cbb5;
+  --butter: #efdfbd;
+  --brass-ink: #705221;
+}
+:root[data-theme="mint"] {
+  --canvas: #e2eee8;
+  --paper: #f0faf3;
+  --surface: #fbfffc;
+  --ink: #214a3f;
+  --forest: #246052;
+  --forest-light: #307462;
+  --muted: #526d62;
+  --line: #c0d8ca;
+  --butter: #d9edcf;
+  --brass-ink: #4d6329;
+}
+:root[data-theme="rose"] {
+  --canvas: #f1e4e9;
+  --paper: #fff4f7;
+  --surface: #fffbfc;
+  --ink: #522e3c;
+  --forest: #8b3755;
+  --forest-light: #9c4766;
+  --muted: #785965;
+  --line: #e1c6d1;
+  --butter: #f5dbe5;
+  --brass-ink: #7f3b52;
+}
+:root[data-font="playful"] {
+  --sans: "Nunito Variable", Arial, sans-serif;
+  --serif: "Fredoka Variable", Arial, sans-serif;
+}
+:root[data-font="bookish"] {
+  --sans: "Nunito Variable", Arial, sans-serif;
+  --serif: "Lora Variable", Georgia, serif;
+}
+:root[data-font="accessible"] {
+  --sans: "Atkinson Hyperlegible Next Variable", Arial, sans-serif;
+  --serif: "Atkinson Hyperlegible Next Variable", Arial, sans-serif;
+}
+:root[data-text-size="small"] {
+  font-size: 15px;
+}
+:root[data-text-size="standard"] {
+  font-size: 16px;
+}
+:root[data-text-size="large"] {
+  font-size: 18px;
+}
+:root[data-text-size="extra"] {
+  font-size: 20px;
+}
+:root[data-background="dots"] body {
+  background-image: radial-gradient(var(--line) 1.5px, transparent 2px);
+  background-size: 20px 20px;
+}
+:root[data-background="grid"] body {
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+:root[data-background="stars"] body {
+  background-image:
+    radial-gradient(var(--brass-ink) 1px, transparent 2px),
+    radial-gradient(var(--line) 2px, transparent 3px);
+  background-size:
+    41px 53px,
+    71px 89px;
+}
+:root[data-background="gradient"] body {
+  background-image: linear-gradient(
+    130deg,
+    var(--canvas),
+    var(--butter),
+    var(--paper)
+  );
+  background-size: 100% 100%;
+  background-attachment: fixed;
+}
+:root[data-background="plain"] body {
+  background-image: none;
+}
+:root[data-spacing="compact"] .hub-card,
+:root[data-spacing="compact"] .card,
+:root[data-spacing="compact"] .family-card {
+  padding: 16px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+:root[data-spacing="compact"] .cards,
+:root[data-spacing="compact"] .hub-stack {
+  gap: 10px;
+}
+:root[data-card-style="outlined"] .hub-card,
+:root[data-card-style="outlined"] .card,
+:root[data-card-style="outlined"] .recognition {
+  border: 2px solid var(--forest);
+  border-radius: 12px;
+  box-shadow: none;
+}
+:root[data-card-style="flat"] .hub-card,
+:root[data-card-style="flat"] .card,
+:root[data-card-style="flat"] .recognition {
+  border-radius: 3px;
+  box-shadow: none;
+}
+:root[data-summaries="off"] .pickup-summary,
+:root[data-summaries="off"] .homework-summary {
+  display: none;
+}
+:root[data-contrast="high"] {
+  --muted: var(--ink);
+  --line: var(--ink);
+}
+:root[data-contrast="high"] button,
+:root[data-contrast="high"] input,
+:root[data-contrast="high"] select,
+:root[data-contrast="high"] textarea {
+  border: 2px solid var(--ink);
+}
+:root[data-theme="midnight"] .app-navigation {
+  background: var(--paper);
+}
+:root[data-theme="midnight"] button.secondary {
+  background: var(--butter);
+  color: var(--ink);
+  border-color: var(--line);
+}
+:root[data-theme="midnight"] header .brand span {
+  color: var(--paper);
+}
+:root[data-theme="midnight"] .settings-preview {
+  background: #f7f3e8;
+  color: #203b32;
+}
+.app-settings {
+  padding-top: 20px;
+}
+.settings-form {
+  display: grid;
+  gap: 20px;
+}
+.settings-form fieldset {
+  border: 1px solid var(--line);
+  padding: 24px;
+  border-radius: 20px;
+  background: var(--surface);
+  min-width: 0;
+}
+.settings-form fieldset:disabled {
+  opacity: 0.7;
+}
+.settings-form legend {
+  font-weight: 800;
+  padding: 0 10px;
+}
+.settings-form label {
+  margin: 20px 0;
+}
+.settings-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.theme-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.theme-picker label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin: 0;
+  font-size: 14px;
+}
+.theme-picker .chosen {
+  outline: 2px solid var(--forest);
+  outline-offset: 1px;
+}
+.theme-picker input {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+}
+.theme-dot {
+  display: block;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border-radius: 50%;
+  background: var(--swatch);
+}
+.settings-preview {
+  background: #f7f3e8;
+  border: 2px solid;
+  border-radius: 22px;
+  padding: 24px;
+  margin: 22px 0;
+  color: #203b32;
+  overflow-wrap: anywhere;
+}
+.settings-preview > span {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.settings-preview h3 {
+  font-size: 1.8em;
+}
+.settings-preview[data-preview="friendly"] {
+  font-family: "Nunito Variable", sans-serif;
+}
+.settings-preview[data-preview="simple"] {
+  font-family: "DM Sans Variable", sans-serif;
+}
+.settings-preview[data-preview="editorial"] h3 {
+  font-family: "Newsreader Variable", serif;
+}
+.settings-preview[data-preview="playful"] h3 {
+  font-family: "Fredoka Variable", sans-serif;
+}
+.settings-preview[data-preview="bookish"] h3 {
+  font-family: "Lora Variable", serif;
+}
+.settings-preview[data-preview="accessible"] {
+  font-family: "Atkinson Hyperlegible Next Variable", sans-serif;
+}
+.settings-preview[data-card-style="outlined"] {
+  border-width: 3px;
+  border-radius: 12px;
+}
+.settings-preview[data-card-style="flat"] {
+  border-radius: 3px;
+}
+.sharing-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--butter);
+  padding: 14px 18px;
+  margin: 15px 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.sharing-banner > span:nth-child(2) {
+  flex: 1 1 190px;
+}
+.sharing-banner button {
+  font-size: 13px;
+}
+.location-person h3 {
+  margin: 0 0 12px;
+}
+.location-person h3 small {
+  display: inline-block;
+  margin-left: 8px;
+  color: var(--muted);
+}
+.location-person .stale-location {
+  background: #f5e6c7;
+  color: #6d441b;
+}
+.location-coordinates {
+  font-family: var(--mono);
+  font-size: 14px;
+}
+.location-guide summary {
+  cursor: pointer;
+  font-weight: 750;
+  min-height: 44px;
+  line-height: 1.6;
+}
+.family-map-wrap {
+  margin: 24px 0;
+}
+.family-map {
+  height: 380px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--canvas);
+}
+.family-map-wrap > button {
+  margin-top: 12px;
+}
+.family-map-marker {
+  display: grid;
+  place-items: center;
+  background: #173e32;
+  color: #fff;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px #203b3266;
+  font-weight: 800;
+}
+.family-map-marker.stale-map-marker {
+  background: #8b571c;
+}
+.family-map .leaflet-popup-content {
+  color: #203b32;
+  font-family: var(--sans);
+}
+.family-map .leaflet-control-attribution {
+  font-size: 11px;
+}
+.family-map .leaflet-control-zoom a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+}
+.settings-preview[data-preview="friendly"] h3 {
+  font-family: "Nunito Variable", sans-serif;
+}
+.settings-preview[data-preview="simple"] h3 {
+  font-family: "DM Sans Variable", sans-serif;
+}
+.settings-preview[data-preview="accessible"] h3 {
+  font-family: "Atkinson Hyperlegible Next Variable", sans-serif;
+}
+@media (max-width: 400px) {
+  .settings-form fieldset {
+    padding: 18px 14px;
+  }
+  .theme-picker {
+    gap: 8px;
+  }
+  .theme-picker label {
+    padding: 14px 7px;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .theme-dot {
+    width: 16px;
+    height: 16px;
+    flex-basis: 16px;
+  }
+  .family-map {
+    height: 320px;
+  }
+}

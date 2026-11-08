@@ -2,7 +2,12 @@ import "@fontsource-variable/nunito/index.css";
 import "@fontsource-variable/dm-sans/index.css";
 import "@fontsource-variable/newsreader/index.css";
 import "@fontsource-variable/newsreader/wght-italic.css";
+import "@fontsource-variable/fredoka/index.css";
+import "@fontsource-variable/lora/index.css";
+import "@fontsource-variable/atkinson-hyperlegible-next/index.css";
+import "leaflet/dist/leaflet.css";
 import "./style.css";
+import "./customization.css";
 import { APP_NAME } from "../lib/team-types";
 export const metadata = {
   title: `${APP_NAME} · Family handoffs`,

@@ -93,6 +93,28 @@ All three sections are household-shared. The separate Cedar account and anonymou
 
 ## Verification
 
+### App settings and family location
+
+**My profile** now edits identity only: display name, avatar, and bio. **App settings** is a separate page with eight themes (including After hours), six locally bundled fonts, seven background patterns or a private gallery photo, a photo-readability overlay, four text sizes, compact/comfortable spacing, three card styles, high contrast, reduced motion, 12/24-hour time, a startup page, and Today summary visibility. A preview shows the selected font and card treatment. Changes save to the account and preserve stale drafts. Profile edits cannot reset appearance settings.
+
+Parents have a **Child defaults** tab. Its look and behavior apply to a new child profile or whenever the child chooses **Use my team's defaults**. Personal child choices remain independent. Child defaults can use only photos explicitly shared with the child. **My profile** and **Make this space mine** are separate actions in the child view.
+
+**More → Family map** provides voluntary location sharing. Each device starts with sharing off. On the device you want to share, choose a duration (**1, 8, or 24 hours**), check the consent box, press **Start sharing my location**, and allow the browser's location prompt. For the child, a parent must first enable **App settings → Child defaults → Allow the child account to share its device location with parents**; the child's device still has to opt in. Parents see both parents and the child in their own household. Children can manage their own sharing but cannot read the parent map or other people's points, including through direct API requests.
+
+The app reports device positions while open, at most about once every 30 seconds, and checks sharing status about every 15 seconds. A visible banner includes Stop. The map shows capture time, GPS accuracy, and a **Last known · may be out of date** label after two minutes without a fresh fix. Closing the app, signing out, sleeping, losing connectivity, or powering off the phone can stop updates; its previous point stays visible until the sharing period ends or sharing is stopped. The browser cannot wake an unreachable phone or provide dependable background tracking. Verify actual iOS/Android behavior before relying on it.
+
+**Stop sharing** immediately stops this device's GPS watcher and asks the server to remove its saved point. If disconnected, the app explicitly says the server may still retain that point and offers retry; it does not resume collecting automatically. Expired sessions, a disabled child account, a child password reset, or revoked guardian permission invalidate child sharing. Only the latest point is stored, not a route history. Expired/revoked saved points are removed on the next authenticated household request. The data uses the existing private household store with RLS; it is never included in the general hub response or publicly accessible.
+
+Press **Load family map** to load OpenStreetMap tiles with attribution. The tile provider sees the area being viewed. **Open this point in Maps** sends that selected point to Google Maps only when clicked. Neither feature needs a new API key. New settings and location use the existing schema: no additional Supabase migration, Vercel variable, or DNS change is required for this release.
+
+```sh
+npm run build
+npm run typecheck
+npm run test:settings
+```
+
+`test:settings` runs domain checks and independent parent/child/third-household/anonymous browser sessions against SQLite and the Supabase SDK/Postgres fixture on ports **3360/3361**. GPS is simulated at fictional test positions and map tiles are intercepted. Coverage includes separate profile/settings pages, preference isolation and stale drafts, child defaults/overrides, startup pages, explicit GPS opt-in, parent-only map access, stale timestamps, offline Stop, pause/update races, guardian revocation, and restart persistence. Real phone permissions, GPS accuracy, background/sleep behavior, offline reconnects, and live tile delivery still need physical-device checks.
+
 ### Family hub release
 
 **More** now includes **Photo gallery**, **Resources**, **Parenting together**, **Parent chat**, **Contacts**, **Stars & rewards**, **My profile**, and **App settings**. These features work with either local SQLite or hosted Supabase. For an existing hosted installation, apply the additional migration described in [DEPLOYMENT.md](DEPLOYMENT.md#upgrading-an-existing-team-bill-installation) before deploying this release.

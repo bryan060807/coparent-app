@@ -15,7 +15,9 @@
     "test:cloud:db": "node --import tsx scripts/cloud-db-checks.ts",
     "test:cloud": "node --import tsx scripts/cloud-config-checks.ts && node --import tsx scripts/cloud-seed-checks.ts && node --import tsx scripts/cloud-db-checks.ts && node --import tsx scripts/cloud-integration.ts",
     "seed:cloud": "node --env-file-if-exists=.env.local --import tsx scripts/seed-cloud.ts",
-    "test:hub": "node --import tsx scripts/hub-integration.ts && node --import tsx scripts/hub-integration.ts --cloud"
+    "test:hub": "node --import tsx scripts/hub-integration.ts && node --import tsx scripts/hub-integration.ts --cloud",
+    "test:location:domain": "node --import tsx scripts/location-domain-checks.ts",
+    "test:settings": "node --import tsx scripts/location-domain-checks.ts && node --import tsx scripts/settings-location-integration.ts && node --import tsx scripts/settings-location-integration.ts --cloud"
   },
   "repository": {
     "type": "git",
@@ -33,11 +35,15 @@
     "node": ">=24.0.0"
   },
   "dependencies": {
+    "@fontsource-variable/atkinson-hyperlegible-next": "^5.3.0",
     "@fontsource-variable/dm-sans": "^5.3.0",
+    "@fontsource-variable/fredoka": "^5.3.0",
+    "@fontsource-variable/lora": "^5.3.0",
     "@fontsource-variable/newsreader": "^5.3.0",
     "@fontsource-variable/nunito": "^5.3.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0",
+    "leaflet": "^1.9.4",
     "next": "^16.4.5",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
@@ -45,6 +51,7 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.15",
     "@playwright/test": "^1.65.0",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
