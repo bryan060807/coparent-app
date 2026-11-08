@@ -1,3 +1,4 @@
+import "@fontsource-variable/nunito/index.css";
 import "@fontsource-variable/dm-sans/index.css";
 import "@fontsource-variable/newsreader/index.css";
 import "@fontsource-variable/newsreader/wght-italic.css";

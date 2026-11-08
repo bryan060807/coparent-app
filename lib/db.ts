@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { HUB_LOCAL_SCHEMA } from "./hub-local-schema";
 export const dataDir = path.resolve(
   /* turbopackIgnore: true */ process.env.DATA_DIR || "./data",
 );
@@ -74,6 +75,7 @@ CREATE TABLE IF NOT EXISTS family_timezone_events(id INTEGER PRIMARY KEY,househo
 CREATE TABLE IF NOT EXISTS team_events(id INTEGER PRIMARY KEY,household TEXT NOT NULL REFERENCES households(id),actor TEXT NOT NULL REFERENCES users(id),child_name TEXT NOT NULL,version INTEGER NOT NULL,request_key TEXT NOT NULL,at TEXT NOT NULL,UNIQUE(actor,request_key),UNIQUE(household,version));
 CREATE TABLE IF NOT EXISTS household_invites(token_hash TEXT PRIMARY KEY,household TEXT NOT NULL REFERENCES households(id),created_by TEXT NOT NULL REFERENCES users(id),expires INTEGER NOT NULL,used_by TEXT REFERENCES users(id));
 CREATE TABLE IF NOT EXISTS auth_limits(key TEXT PRIMARY KEY,window_start INTEGER NOT NULL,attempts INTEGER NOT NULL);`);
+    connection.exec(HUB_LOCAL_SCHEMA);
     connection.exec("COMMIT");
     connections.set(filename, connection);
     return connection;

@@ -53,6 +53,18 @@ Cloudflare stays the DNS provider. No transfer of the domain or nameserver chang
 
 Private staging URLs last up to two hours; upload intents last one hour. Rejected files are removed; failed/abandoned upload attempts can leave private staging objects that need periodic administrative cleanup. None are attached to a paper or readable through the parent download policy. Keep the Storage bucket private and retain the migration's database and Storage policies.
 
+## Upgrading an existing Team Bill installation
+
+For the family hub release, run **only the new** [202611080001_family_hub.sql](supabase/migrations/202611080001_family_hub.sql) in the selected project's SQL Editor before deploying the updated application. The original `202611070001_team.sql` must already be installed; do not rerun it on an existing project. The new migration is additive and preserves parent accounts, households, papers, attachments, and existing records. Run it once, then deploy/redeploy the application from the updated Git revision. A new project needs both migrations in filename order.
+
+The new tables store the household hub, hashed child sessions, sign-in limits, and a chore-star ledger. RLS is enabled and anonymous/authenticated direct access is revoked. Only the server secret can use the hub store; every API request first derives the parent household from the verified Supabase identity or validates the child's hashed, revocable session. Children receive no Supabase parent JWT. Existing school-paper Storage policies stay private; gallery originals use the same validated staging uploads and are streamed only after the hub's household/child-visibility checks.
+
+Chore-star triggers update the ledger in the same transaction as routine checkoffs. Existing recorded chore checkoffs are imported once per task/day. Reward saves compare both the hub version and earned-star count while holding the household lock, so concurrent approvals or checkoff reversals cannot overspend a stale balance. Local SQLite receives equivalent tables/triggers automatically on restart.
+
+No additional Vercel environment variables or DNS changes are required. Keep the five application variables from the original setup. Use **More → Stars & rewards → Set up child login** to create the separate child account; no child email or additional Supabase Auth user is created. Parents can reset/disable it from the same screen. Custom SMTP is still required for reliable parent confirmation emails if confirmation is enabled.
+
+Before sharing the upgrade, run the parent/child tour in README, including an approved reward, a reset child password, and known private photo/API URLs from the child and third household. Automated fixtures do not verify a live Supabase migration, Vercel's streaming limits, real-device camera behavior, or provider email delivery.
+
 ## Optional development-only cloud seed
 
 For a dedicated test project, fill `.env.local` with its Supabase values and add `ALLOW_CLOUD_DEMO_SEED=yes`, then run:

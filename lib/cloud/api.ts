@@ -306,7 +306,7 @@ async function dispatch(
     id ? 200 : 201,
   );
 }
-async function validateUpload(
+export async function validateUpload(
   client: SupabaseClient,
   body: Record<string, unknown>,
 ) {

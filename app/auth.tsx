@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Brand, PrepIllustration } from "./ui";
+import { ChildLogin } from "./hub";
 import { teamName } from "../lib/team-types";
 export default function AuthScreen({
   onAuthenticated,
@@ -9,6 +10,7 @@ export default function AuthScreen({
   onAuthenticated: () => Promise<void>;
   onboarding?: boolean;
 }) {
+  const [childLogin, setChildLogin] = useState(false);
   const [signup, setSignup] = useState(onboarding),
     [mode, setMode] = useState<"create" | "join">("create"),
     [childName, setChildName] = useState(""),
@@ -56,6 +58,13 @@ export default function AuthScreen({
       setBusy(false);
     }
   }
+  if (childLogin)
+    return (
+      <ChildLogin
+        onAuthenticated={onAuthenticated}
+        onBack={() => setChildLogin(false)}
+      />
+    );
   return (
     <main className={"login" + (signup ? " signup" : "")}>
       <section className="login-story">
@@ -255,6 +264,11 @@ export default function AuthScreen({
               ? "Already have an account? Sign in"
               : "Create an account"}
         </button>
+        {!signup && !onboarding && (
+          <button className="secondary" onClick={() => setChildLogin(true)}>
+            Child sign in
+          </button>
+        )}
         <p className="login-privacy">
           <span aria-hidden="true">·</span>A private space for your household.
         </p>

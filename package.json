@@ -14,7 +14,8 @@
     "test:db": "node --import tsx scripts/database-checks.ts",
     "test:cloud:db": "node --import tsx scripts/cloud-db-checks.ts",
     "test:cloud": "node --import tsx scripts/cloud-config-checks.ts && node --import tsx scripts/cloud-seed-checks.ts && node --import tsx scripts/cloud-db-checks.ts && node --import tsx scripts/cloud-integration.ts",
-    "seed:cloud": "node --env-file-if-exists=.env.local --import tsx scripts/seed-cloud.ts"
+    "seed:cloud": "node --env-file-if-exists=.env.local --import tsx scripts/seed-cloud.ts",
+    "test:hub": "node --import tsx scripts/hub-integration.ts && node --import tsx scripts/hub-integration.ts --cloud"
   },
   "repository": {
     "type": "git",
@@ -34,6 +35,7 @@
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",
     "@fontsource-variable/newsreader": "^5.3.0",
+    "@fontsource-variable/nunito": "^5.3.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0",
     "next": "^16.4.5",

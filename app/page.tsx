@@ -6,9 +6,15 @@ import FamilySection, { RoutineSummary } from "./family";
 import { Brand, Icon, EmptyMark } from "./ui";
 import AuthScreen from "./auth";
 import TeamSettings from "./team";
+import HubPanel, {
+  ChildSpace,
+  ParentAppearance,
+  hubSections,
+  type HubSection,
+} from "./hub";
 import { APP_NAME, type Team } from "../lib/team-types";
 import { uploadSchoolPaper } from "../lib/cloud/upload";
-type Member = { id: string; name: string };
+type Member = { id: string; name: string; role?: "parent" | "child" };
 type Paper = {
   id: string;
   title: string;
@@ -56,6 +62,7 @@ export default function Home() {
       | "routines"
       | "info"
       | "team"
+      | HubSection
     >("today"),
     [homeworkId, setHomeworkId] = useState<string | undefined>(),
     [moreOpen, setMoreOpen] = useState(false),
@@ -119,6 +126,12 @@ export default function Home() {
       setDirectUploads(m.uploads === "direct");
       setTeam(m.team);
       setMembers(m.members);
+      if (m.user.role === "child") {
+        setPapers([]);
+        setSyncError("");
+        setLoading(false);
+        return;
+      }
       const p = await fetch("/api/papers");
       if (!p.ok) throw Error();
       const latestPapers = await p.json();
@@ -135,7 +148,12 @@ export default function Home() {
   useEffect(() => {
     void refresh();
     const i = setInterval(() => void refresh(), 3000);
-    return () => clearInterval(i);
+    const changed = () => void refresh();
+    window.addEventListener("team-account-change", changed);
+    return () => {
+      clearInterval(i);
+      window.removeEventListener("team-account-change", changed);
+    };
   }, [refresh]);
   useEffect(() => {
     if (!selected) return;
@@ -248,11 +266,21 @@ export default function Home() {
         onAuthenticated={refresh}
       />
     );
+  if (me.role === "child")
+    return (
+      <ChildSpace
+        key={me.id}
+        user={me}
+        team={team?.name ?? "Your team"}
+        onSignedOut={refresh}
+      />
+    );
   const list = papers.filter((p) =>
     view === "history" ? p.status === "returned" : p.status !== "returned",
   );
   return (
     <main>
+      <ParentAppearance key={me.id} viewer={me.id} />
       <header>
         <Brand name={team?.name} />
         <button
@@ -441,9 +469,14 @@ export default function Home() {
               <button
                 className={
                   moreOpen ||
-                  ["history", "gifts", "routines", "info", "team"].includes(
-                    view,
-                  )
+                  [
+                    "history",
+                    "gifts",
+                    "routines",
+                    "info",
+                    "team",
+                    ...hubSections.map((s) => s.id),
+                  ].includes(view)
                     ? "active"
                     : "text"
                 }
@@ -461,6 +494,21 @@ export default function Home() {
                 aria-label="More sections"
                 className="more-sections"
               >
+                {hubSections.map((link) => (
+                  <button
+                    className={view === link.id ? "active" : "secondary"}
+                    key={link.id}
+                    onClick={() => {
+                      setView(link.id);
+                      setMoreOpen(false);
+                      setError("");
+                      setNotice("");
+                    }}
+                  >
+                    <span aria-hidden="true">{link.emoji}</span>
+                    <span>{link.label}</span>
+                  </button>
+                ))}
                 {(
                   [
                     { view: "gifts", label: "Gifts & money" },
@@ -487,7 +535,13 @@ export default function Home() {
               </nav>
             )}
           </div>
-          {view === "team" && team ? (
+          {hubSections.some((s) => s.id === view) ? (
+            <HubPanel
+              key={me.id + ":" + view}
+              section={view as HubSection}
+              viewer={me.id}
+            />
+          ) : view === "team" && team ? (
             <TeamSettings
               key={"team:" + me.id}
               team={team}
