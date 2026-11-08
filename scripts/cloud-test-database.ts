@@ -18,6 +18,9 @@ export async function cloudTestDatabase() {
     await db.exec(
       readFileSync("supabase/migrations/202611070001_team.sql", "utf8"),
     );
+    await db.exec(
+      readFileSync("supabase/migrations/202611080001_family_hub.sql", "utf8"),
+    );
     return db;
   } catch (e) {
     await db.close();

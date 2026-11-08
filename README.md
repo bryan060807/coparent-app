@@ -93,6 +93,28 @@ All three sections are household-shared. The separate Cedar account and anonymou
 
 ## Verification
 
+### Family hub release
+
+**More** now includes **Photo gallery**, **Resources**, **Parenting together**, **Parent chat**, **Contacts**, **Stars & rewards**, **My profile**, and **App settings**. These features work with either local SQLite or hosted Supabase. For an existing hosted installation, apply the additional migration described in [DEPLOYMENT.md](DEPLOYMENT.md#upgrading-an-existing-team-bill-installation) before deploying this release.
+
+- **Gallery:** add private JPEG/PNG photos up to 10 MiB, captions, and an explicit **Show in child view** setting. Open originals, edit captions/sharing, or remove an item from the gallery. Rejected files preserve the caption. Originals have authenticated download URLs and private/no-store responses. HEIC needs exporting to JPEG. Removing an item revokes its app URL; private unreferenced originals are retained for administrative cleanup rather than permanently erased.
+- **Resources:** save your own HTTPS links and/or written guidance, for parents only or for parents and child. No public directory or automatic external content fetch is involved.
+- **Parenting together:** choose a question (bedtime, screens, big feelings, and more), or ask your own. Each parent owns their answer. Write a shared approach and have both parents explicitly agree. Changing an answer or plan clears earlier approvals. This is a conversation exercise, not generated advice.
+- **Parent chat:** an AOL-inspired private conversation with named, timestamped messages. It polls every three seconds, keeps unsent drafts after errors, prevents duplicate retries, and offers earlier messages once the latest 200 are shown. Messages are persisted; this version does not edit or delete sent messages or send push notifications.
+- **Contacts:** edit shared names, relationships/roles, phone numbers, email addresses, notes, important-contact pins, and child visibility. Phone/email links open the device's calling/mail app. Contacts start empty; all test numbers and addresses are fictional.
+- **Stars & rewards:** each completed **chore** earns **one star per task/calendar day**, including existing recorded chore checkoffs when upgrading. Routines do not earn stars. Undoing a checkoff reverses its star; repeating/checking again cannot multiply awards. Parents can add recognition with zero to 100 extra stars, define/edit/archive goals, and approve or decline requests. Only approval spends stars. Concurrent approvals cannot overspend; goal title/cost are captured when requested. If a spent chore star is later reversed, approved rewards stay approved and future earnings first cover the difference. The child sees a minimum balance of zero.
+- **Profiles/settings:** edit your own name, emoji avatar, short bio, theme, font, background, larger text, and reduced motion. Themes are Herb garden, Blue skies, Peachy days, and Berry bright. The default font is locally bundled Nunito; DM Sans and the original Newsreader style remain choices. Backgrounds can be plain, confetti, waves, or an accessible gallery photo. Preferences persist per account, across sessions. The app sends no font or wallpaper requests to third parties.
+
+**Separate child login:** a parent opens **More → Stars & rewards → Set up child login**, chooses a globally unique username (4–40 letters/numbers/underscores/hyphens), and sets a password of 12–200 characters. No child email is required. On the signed-out screen choose **Child sign in**. The child sees today's routines/checkoffs, stars, recognition, rewards, and explicitly shared photos/resources/contacts, and can request a reward or personalize their space. A parent checks off chores; children cannot self-award stars or approve rewards. Parent chat, parenting exercises, money, health records, school papers, pickups, homework details, invitations, and parent settings are denied server-side even through known API URLs. Child passwords are salted/scrypt-hashed; only hashed session tokens are stored. Resetting or disabling the child account revokes existing child sessions. Child sign-in on a parent browser signs out the parent; sign out of the child account before a parent signs back in.
+
+Run the additional integration checks after building:
+
+```sh
+npm run test:hub
+```
+
+They run independent parent, child, third-household, and anonymous sessions against SQLite and against the real Supabase SDK with Postgres/RLS and an Auth/Storage HTTP fixture. They cover editable/stale contact forms, private photos and rejected uploads, resource audiences, chat sync/idempotency, separate exercise answers/approvals, child API boundaries, automatic star reversals, reward approval races, appearance isolation, password-reset revocation, persistence, and 320px layouts. Ports **3356/3357** must be free. They do not contact live providers. Keep `npm test` and `npm run test:cloud` for the earlier workflows. On physical phones, still check camera/gallery permissions, call links, email confirmation delivery, keyboards, and original-image viewing.
+
 ```sh
 npm run build
 npm run typecheck
