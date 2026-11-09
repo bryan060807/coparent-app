@@ -245,8 +245,8 @@ export default function FinancePanel({ viewer }: { viewer: string }) {
           <button onClick={() => open("payment")}>Prepare payment</button>
           {!data.payments.length && (
             <p className="note">
-              No payments recorded. Each parent can add their own PayPal.Me link
-              under My PayPal, or use another method.
+              No payments recorded. Each parent can add their own PayPal.Me
+              username under My PayPal, or use another method.
             </p>
           )}
           {[...data.payments].reverse().map((p) => (
@@ -457,9 +457,9 @@ export default function FinancePanel({ viewer }: { viewer: string }) {
         <>
           <h2>My payment link</h2>
           <p>
-            Only you can change your link. Share a PayPal.Me link for the other
-            parent to send you money. This does not connect or grant access to
-            your PayPal account.
+            Add your PayPal.Me username, the part after paypal.me/, and we’ll
+            build your payment link. Only you can change it. This does not
+            connect or grant access to your PayPal account.
           </p>
           <p>
             {data.links[viewer]?.handle
@@ -815,12 +815,26 @@ function FinanceEditor({
         )}
         {op === "link" && (
           <>
-            {field(
-              "My PayPal.Me handle or HTTPS link",
-              "handle",
-              "text",
-              false,
-            )}
+            <label>
+              PayPal.Me username
+              <input
+                value={draft.handle}
+                onChange={(event) => change("handle", event.target.value)}
+                type="text"
+                placeholder="e.g. WillowParent"
+                maxLength={120}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                aria-describedby="paypal-username-help"
+              />
+            </label>
+            <p id="paypal-username-help">
+              Enter just the username after <strong>paypal.me/</strong>. For
+              example, for paypal.me/WillowParent, type{" "}
+              <strong>WillowParent</strong>. We’ll build the full link for you.
+              Pasting your full PayPal.Me link also works.
+            </p>
             <p>
               Use your own link. Clear it to remove it. The other parent cannot
               change this setting.

@@ -56,7 +56,7 @@ export function paypalHandle(v: unknown) {
       return u.pathname.split("/")[1];
   } catch {}
   throw new HubError(
-    "Enter your PayPal.Me handle or an https://paypal.me/YourHandle link, without an amount or query.",
+    "Enter your PayPal.Me username, such as WillowParent. A full https://paypal.me/WillowParent link also works; leave off any amount or query.",
   );
 }
 export function financeView(

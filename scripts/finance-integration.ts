@@ -177,17 +177,17 @@ try {
       .getByRole("button", { name: "Edit my PayPal link", exact: true })
       .click();
     await pa
-      .getByLabel("My PayPal.Me handle or HTTPS link", { exact: true })
+      .getByLabel("PayPal.Me username", { exact: true })
       .fill("https://evil.example/pay");
     await pa.getByRole("button", { name: "Save", exact: true }).click();
     await expect(pa.locator(".finance-editor [role=alert]")).toContainText(
       "PayPal.Me",
     );
     await expect(
-      pa.getByLabel("My PayPal.Me handle or HTTPS link", { exact: true }),
+      pa.getByLabel("PayPal.Me username", { exact: true }),
     ).toHaveValue("https://evil.example/pay");
     await pa
-      .getByLabel("My PayPal.Me handle or HTTPS link", { exact: true })
+      .getByLabel("PayPal.Me username", { exact: true })
       .fill("FictionalAlex");
     await pa.getByRole("button", { name: "Save", exact: true }).click();
     await pa.getByRole("button", { name: "Expenses", exact: true }).click();
