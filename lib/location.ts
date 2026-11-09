@@ -7,6 +7,7 @@ import type {
   FamilyLocation,
 } from "./hub-types";
 import { HubError } from "./hub-domain";
+import { preferFix } from "./location-quality";
 export function cleanLocations(s: HubState, now = Date.now()) {
   let changed = false;
   for (const [id, loc] of Object.entries(s.locations ?? {})) {
@@ -118,6 +119,7 @@ export function mutateLocation(
         throw new HubError("A newer location is already saved.", 409);
       return false;
     }
+    if (!preferFix(current.fix, f, now)) return false;
     current.fix = {
       latitude: f.latitude,
       longitude: f.longitude,

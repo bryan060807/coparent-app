@@ -1016,6 +1016,52 @@ footer {
   text-align: center;
   color: var(--muted);
 }
+.finance-panel .hub-card {
+  margin-top: 20px;
+  overflow-wrap: anywhere;
+}
+.finance-summary > strong {
+  display: block;
+  font-size: 2.4rem;
+  margin-top: 6px;
+}
+.finance-amount {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 12px 0;
+}
+.finance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+.finance-actions > * {
+  flex: 1 1 145px;
+}
+.finance-history {
+  margin-top: 20px;
+  border-top: 1px solid var(--border, #ccc);
+  padding-top: 12px;
+}
+.finance-history summary,
+.finance-panel details > summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 10px 0;
+}
+.finance-entry {
+  border-bottom: 1px solid var(--border, #ccc);
+  padding: 10px 0;
+}
+.finance-panel progress {
+  width: 100%;
+  height: 18px;
+  accent-color: var(--forest);
+}
+.finance-editor form {
+  max-width: 600px;
+}
 .back {
   display: block;
   margin: 4px 0 10px;

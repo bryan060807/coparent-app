@@ -83,6 +83,28 @@ fail(
     ),
   409,
 );
+// A broad fix is kept honest; a better fix bypasses client throttling.
+const { preferFix, improvedFix } = await import("../lib/location-quality");
+const coarse = { ...fix, accuracy: 50000, capturedAt: now + 1000 };
+assert.equal(preferFix(fix, coarse, now + 1000), false);
+assert.equal(
+  mutateLocation(s, a, { action: "point", grant, fix: coarse }, now + 1000),
+  false,
+);
+assert.equal(
+  s.locations![a.id].fix!.capturedAt,
+  now,
+  "Retaining a point never makes its timestamp look fresh",
+);
+assert.equal(
+  preferFix(fix, { ...coarse, capturedAt: now + 61000 }, now + 61000),
+  true,
+);
+assert.equal(improvedFix(coarse, { ...fix, capturedAt: now + 2000 }), true);
+assert.equal(
+  preferFix(coarse, { ...fix, capturedAt: now + 2000 }, now + 2000),
+  true,
+);
 const publicChild = locationView(
   s,
   child,

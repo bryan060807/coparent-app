@@ -93,6 +93,32 @@ All three sections are household-shared. The separate Cedar account and anonymou
 
 ## Verification
 
+### Family finances
+
+Open **More → Family finances**. This parent-only space is separate from the child’s **Gifts & money** log.
+
+- **Expenses:** record a title, category (school, medical, travel, activities, other), date, notes, amount, and who paid. The default split is 50/50; custom USD shares support 100/0. An extra cent goes to the first listed parent, shown before saving. Both parents can edit or void expenses; versions protect stale drafts and the activity retains earlier details. Voided records remain visible but leave totals.
+- **Payments:** each parent saves **their own** PayPal.Me link in **My PayPal**. The owing parent prepares a reimbursement or an unrelated transfer, opens PayPal, verifies the recipient/amount there, then chooses **I sent this money** after paying. Only the recipient can choose **I received…**. Opening a link never sends money or changes status. Cash/bank/other methods can be recorded too. Only received reimbursements settle shared expenses; other money stays separate. Pending reimbursements reserve their amount to discourage paying twice. A changed recipient link invalidates prepared PayPal handoffs. A recipient can report nonreceipt, then confirm later or close the unreceived record with a reason. Confirmed receipts remain final; corrections require a separate record. The app does not verify payments with PayPal, hold funds, handle fees/disputes, or need PayPal/Stripe API keys.
+- **Savings:** create editable college, trip, medical, emergency, or custom-purpose goals with a USD target, optional target date, and a written plan. Record deposits/withdrawals made outside the app, see progress and contribution history, and archive/restore goals. Each parent can void only their own entry with a reason. Concurrent withdrawals cannot make recorded savings negative. These are manual records, not linked accounts or investment balances.
+
+Amounts use integer USD cents. Every change records the signed-in parent and server time. The two sessions poll every three seconds. Finance data is excluded from the general hub response, denied to child accounts, and protected on direct record/activity/PayPal URLs. It persists in the existing private household store on SQLite or Supabase. **No new migration, dependency, environment variable, or DNS change is needed** if the earlier family-hub migration is already applied.
+
+Two-browser walkthrough (fictional local accounts above):
+
+1. Sign in as Alex in one browser and Sam in another. Open Family finances in each. Alex saves a fictional PayPal.Me handle (do not send a test payment to a real account).
+2. Alex adds a $100.01 school-trip expense, paid by Alex, with the default split. Sam sees $50.00 owed without refreshing.
+3. Sam prepares a $20.00 reimbursement. For a real family account, check the PayPal recipient/amount and complete payment there. For fictional testing, inspect the handoff only and simulate **I sent this money**. Opening PayPal alone leaves the record ready to send.
+4. Alex confirms receipt. Sam’s balance becomes $30.00 owed. Check Activity in both sessions. Try editing the same expense in both browsers to see stale-draft protection.
+5. Create a college goal and record a $100 deposit. Both parents see its contribution history. The child and the separate Cedar household cannot access these records.
+
+```sh
+npm run build
+npm run typecheck
+npm run test:finance
+```
+
+`test:finance` runs exact-cent/domain checks plus independent parent, child, third-household, and anonymous Chromium sessions against SQLite (**3362**) and the Supabase SDK with a Postgres/Auth fixture (**3363**). It exercises the screens, receipt workflow, retry races, stale edits, safe redirects, link changes, savings withdrawal races, access restrictions, mobile widths, and persistence across restart. It never sends money or contacts PayPal. A real PayPal handoff, provider login/fees, and physical-phone browser behavior still need hands-on verification.
+
 ### App settings and family location
 
 **My profile** now edits identity only: display name, avatar, and bio. **App settings** is a separate page with eight themes (including After hours), six locally bundled fonts, seven background patterns or a private gallery photo, a photo-readability overlay, four text sizes, compact/comfortable spacing, three card styles, high contrast, reduced motion, 12/24-hour time, a startup page, and Today summary visibility. A preview shows the selected font and card treatment. Changes save to the account and preserve stale drafts. Profile edits cannot reset appearance settings.
@@ -101,9 +127,11 @@ Parents have a **Child defaults** tab. Its look and behavior apply to a new chil
 
 **More → Family map** provides voluntary location sharing. Each device starts with sharing off. On the device you want to share, choose a duration (**1, 8, or 24 hours**), check the consent box, press **Start sharing my location**, and allow the browser's location prompt. For the child, a parent must first enable **App settings → Child defaults → Allow the child account to share its device location with parents**; the child's device still has to opt in. Parents see both parents and the child in their own household. Children can manage their own sharing but cannot read the parent map or other people's points, including through direct API requests.
 
-The app reports device positions while open, at most about once every 30 seconds, and checks sharing status about every 15 seconds. A visible banner includes Stop. The map shows capture time, GPS accuracy, and a **Last known · may be out of date** label after two minutes without a fresh fix. Closing the app, signing out, sleeping, losing connectivity, or powering off the phone can stop updates; its previous point stays visible until the sharing period ends or sharing is stopped. The browser cannot wake an unreachable phone or provide dependable background tracking. Verify actual iOS/Android behavior before relying on it.
+The app reports device positions while open about once every 30 seconds, with substantially better accuracy fixes sent promptly, and checks sharing status about every 15 seconds. A visible banner includes Stop. The map shows capture time, GPS accuracy, and a **Last known · may be out of date** label after two minutes without a fresh fix. Closing the app, signing out, sleeping, losing connectivity, or powering off the phone can stop updates; its previous point stays visible until the sharing period ends or sharing is stopped. The browser cannot wake an unreachable phone or provide dependable background tracking. Verify actual iOS/Android behavior before relying on it.
 
 **Stop sharing** immediately stops this device's GPS watcher and asks the server to remove its saved point. If disconnected, the app explicitly says the server may still retain that point and offers retry; it does not resume collecting automatically. Expired sessions, a disabled child account, a child password reset, or revoked guardian permission invalidate child sharing. Only the latest point is stored, not a route history. Expired/revoked saved points are removed on the next authenticated household request. The data uses the existing private household store with RLS; it is never included in the general hub response or publicly accessible.
+
+**Location accuracy:** phones with precise location enabled generally give better positions than laptops. A laptop often relies on Wi-Fi/IP estimates and may report another city. Browser accuracy is an estimate, not a guarantee. The UI labels broad fixes as approximate areas and shows their radius; the map initially fits that area rather than zooming tightly into a pin. A recent accurate fix is retained against a much worse fallback for up to 60 seconds without changing its original capture time; after that a fresh approximate fix may replace it. A substantially more accurate fix bypasses the usual send interval. No coordinates are corrected or inferred by the app. This improves reporting, but cannot add GPS to a laptop.
 
 Press **Load family map** to load OpenStreetMap tiles with attribution. The tile provider sees the area being viewed. **Open this point in Maps** sends that selected point to Google Maps only when clicked. Neither feature needs a new API key. New settings and location use the existing schema: no additional Supabase migration, Vercel variable, or DNS change is required for this release.
 

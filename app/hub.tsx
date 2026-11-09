@@ -14,6 +14,7 @@ import {
 } from "../lib/hub-types";
 import { Brand } from "./ui";
 import AppSettings from "./settings";
+import FinancePanel from "./finance";
 import {
   applyAppearance,
   resetAppearance,
@@ -33,7 +34,8 @@ export type HubSection =
   | "rewards"
   | "profile"
   | "settings"
-  | "location";
+  | "location"
+  | "finance";
 export const hubSections: { id: HubSection; label: string; emoji: string }[] = [
   { id: "gallery", label: "Photo gallery", emoji: "▧" },
   { id: "resources", label: "Resources", emoji: "📚" },
@@ -44,6 +46,7 @@ export const hubSections: { id: HubSection; label: string; emoji: string }[] = [
   { id: "profile", label: "My profile", emoji: "🙂" },
   { id: "settings", label: "App settings", emoji: "🎨" },
   { id: "location", label: "Family map", emoji: "📍" },
+  { id: "finance", label: "Family finances", emoji: "$" },
 ];
 type Editing = { kind: string; item?: any };
 const when = displayTime;
@@ -386,6 +389,7 @@ export default function HubPanel({
       setBusy(false);
     }
   }
+  if (section === "finance") return <FinancePanel viewer={viewer} />;
   if (!data)
     return (
       <section>
