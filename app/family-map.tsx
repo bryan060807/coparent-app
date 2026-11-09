@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Map as LeafletMap, LayerGroup } from "leaflet";
 import type { FamilyLocation } from "../lib/hub-types";
 import { displayTime } from "../lib/appearance";
+import { accuracyLabel } from "../lib/location-quality";
 export default function FamilyMap({ people }: { people: FamilyLocation[] }) {
   const node = useRef<HTMLDivElement>(null),
     map = useRef<LeafletMap | null>(null),
@@ -57,6 +58,7 @@ export default function FamilyMap({ people }: { people: FamilyLocation[] }) {
       if (!live || !map.current || !layers.current) return;
       layers.current.clearLayers();
       const coords: [number, number][] = [];
+      const bounds = L.latLngBounds([]);
       for (const p of people) {
         if (!p.fix) continue;
         const latlng: [number, number] = [p.fix.latitude, p.fix.longitude];
@@ -65,7 +67,7 @@ export default function FamilyMap({ people }: { people: FamilyLocation[] }) {
           name = document.createElement("strong"),
           at = document.createElement("p");
         name.textContent = p.name;
-        at.textContent = `${Date.now() - p.fix.capturedAt > 120000 ? "Last known (may be out of date)" : "Last saved"} ${displayTime(p.fix.capturedAt)} · about ${Math.round(p.fix.accuracy)} m accuracy`;
+        at.textContent = `${p.fix.accuracy > 100 ? "Approximate area · " : ""}${Date.now() - p.fix.capturedAt > 120000 ? "Last known (may be out of date)" : "Last saved"} ${displayTime(p.fix.capturedAt)} · about ${accuracyLabel(p.fix.accuracy)} accuracy`;
         popup.append(name, at);
         L.marker(latlng, {
           title: p.name,
@@ -88,9 +90,12 @@ export default function FamilyMap({ people }: { people: FamilyLocation[] }) {
           fillOpacity: 0.1,
           color: "#1d526a",
         }).addTo(layers.current);
+        bounds.extend(
+          L.latLng(latlng).toBounds(Math.max(10, p.fix.accuracy * 2)),
+        );
       }
       if (first.current && coords.length) {
-        map.current.fitBounds(L.latLngBounds(coords), {
+        map.current.fitBounds(bounds, {
           padding: [32, 32],
           maxZoom: 15,
         });
@@ -123,12 +128,19 @@ export default function FamilyMap({ people }: { people: FamilyLocation[] }) {
               (p) => [p.fix!.latitude, p.fix!.longitude] as [number, number],
             );
           if (coords.length)
-            void import("leaflet").then((L) =>
-              map.current?.fitBounds(L.latLngBounds(coords), {
+            void import("leaflet").then((L) => {
+              const bounds = L.latLngBounds([]);
+              for (const p of people.filter((p) => p.fix))
+                bounds.extend(
+                  L.latLng(p.fix!.latitude, p.fix!.longitude).toBounds(
+                    Math.max(10, p.fix!.accuracy * 2),
+                  ),
+                );
+              map.current?.fitBounds(bounds, {
                 padding: [32, 32],
                 maxZoom: 15,
-              }),
-            );
+              });
+            });
         }}
       >
         Show all shared points

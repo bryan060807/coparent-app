@@ -93,6 +93,7 @@ export type ChildAccount = {
   enabled: boolean;
 };
 export type HubState = {
+  finance?: import("./finance-types").FinanceState;
   photos: Photo[];
   resources: Resource[];
   contacts: Contact[];

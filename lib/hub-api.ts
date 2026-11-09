@@ -1,4 +1,9 @@
 import { cleanLocations, mutateLocation, locationView } from "./location";
+import {
+  financeView,
+  mutateFinance,
+  paypalDestination,
+} from "./finance-domain";
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes, randomUUID } from "node:crypto";
 import { cloudEnabled, trustedOrigin } from "./cloud/config";
@@ -312,7 +317,10 @@ async function photoFields(
 export async function hubHandle(req: NextRequest): Promise<Response | null> {
   const parts = req.nextUrl.pathname.split("/").slice(2),
     childCookie = req.cookies.has(COOKIE);
-  if (!["hub", "child", "location"].includes(parts[0]) && !childCookie)
+  if (
+    !["hub", "child", "location", "finance"].includes(parts[0]) &&
+    !childCookie
+  )
     return null;
   let ctx: ReturnType<typeof cloudClient> | null = null;
   try {
@@ -414,6 +422,78 @@ export async function hubHandle(req: NextRequest): Promise<Response | null> {
           team: { name: "Team " + s.childName, childName: s.childName },
           members: [],
         }),
+      );
+    }
+    if (parts[0] === "finance") {
+      if (actor.role !== "parent")
+        throw new HubError("Family finances are for parents only.", 403);
+      if (req.method === "GET") {
+        const s = await snapshot(actor.household),
+          f = financeView(s.data, actor, s.members);
+        if (parts.length === 1) return finish(json(f));
+        const collection =
+          parts[1] === "expenses"
+            ? f.expenses
+            : parts[1] === "payments"
+              ? f.payments
+              : parts[1] === "goals"
+                ? f.goals
+                : null;
+        const item = collection?.find((i) => i.id === parts[2]);
+        if (!item) throw new HubError("Record not found.", 404);
+        if (parts.length === 3) return finish(json(item));
+        if (parts.length === 4 && parts[3] === "timeline")
+          return finish(
+            json(
+              f.events.filter(
+                (e) =>
+                  e.entity === item.id ||
+                  (parts[1] === "goals" &&
+                    "goal" in e.snapshot &&
+                    e.snapshot.goal === item.id),
+              ),
+            ),
+          );
+        if (
+          parts.length === 4 &&
+          parts[1] === "payments" &&
+          parts[3] === "paypal"
+        ) {
+          const url = paypalDestination(f, actor, s.members, item.id);
+          return finish(
+            new Response(null, {
+              status: 303,
+              headers: {
+                Location: url,
+                "Cache-Control": "private, no-store",
+                "Referrer-Policy": "no-referrer",
+              },
+            }),
+          );
+        }
+        throw new HubError("Not found.", 404);
+      }
+      if (req.method !== "POST" || parts.length !== 1)
+        throw new HubError("Not found.", 404);
+      const body = await readJson(req, 16384);
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const s = await snapshot(actor.household),
+          next = structuredClone(s.data);
+        if (!mutateFinance(next, actor, s.members, body))
+          return finish(json(financeView(s.data, actor, s.members)));
+        if (
+          await service("store", {
+            household: actor.household,
+            version: s.version,
+            data: next,
+            earned: s.awards.filter((x) => x.active).length,
+          })
+        )
+          return finish(json(financeView(next, actor, s.members)));
+      }
+      throw new HubError(
+        "Someone else is saving. Your draft is kept; please retry.",
+        409,
       );
     }
     if (parts[0] === "location") {

@@ -10,6 +10,7 @@ import {
 import { displayTime } from "../lib/appearance";
 import type { LocationView, LocationFix } from "../lib/hub-types";
 import FamilyMap from "./family-map";
+import { preferFix, improvedFix, accuracyLabel } from "../lib/location-quality";
 type LocationContext = {
   data: LocationView | null;
   error: string;
@@ -62,6 +63,7 @@ export function FamilyLocationProvider({
     generation = useRef(0),
     current = useRef<LocationView | null>(null),
     latestFix = useRef<LocationFix | null>(null),
+    lastFixSent = useRef<LocationFix | null>(null),
     lastSent = useRef(0),
     sending = useRef(false),
     halt = useRef<null | (() => void)>(null);
@@ -169,13 +171,16 @@ export function FamilyLocationProvider({
     let active = true;
     setThisDevice(true);
     lastSent.current = 0;
+    lastFixSent.current = null;
     const send = async () => {
       const fix = latestFix.current;
       if (
         !active ||
         !fix ||
         sending.current ||
-        Date.now() - lastSent.current < 30000
+        (Date.now() - lastSent.current < 30000 &&
+          !improvedFix(lastFixSent.current, fix)) ||
+        lastFixSent.current?.capturedAt === fix?.capturedAt
       )
         return;
       sending.current = true;
@@ -183,6 +188,7 @@ export function FamilyLocationProvider({
       try {
         const b = await request({ action: "point", grant, fix });
         if (active) {
+          lastFixSent.current = fix;
           ++generation.current;
           accept(b);
           setError("");
@@ -203,11 +209,14 @@ export function FamilyLocationProvider({
         }
       } finally {
         sending.current = false;
+        if (active && latestFix.current && improvedFix(fix, latestFix.current))
+          void send();
       }
     };
     const watcher = navigator.geolocation.watchPosition(
       (p) => {
-        latestFix.current = fromPosition(p);
+        const fix = fromPosition(p);
+        if (preferFix(latestFix.current, fix)) latestFix.current = fix;
         void send();
       },
       (e) => {
@@ -380,6 +389,13 @@ export function LocationPanel() {
           sharing expires or is stopped. Timestamps and accuracy show how much
           to rely on each point.
         </p>
+        <p>
+          Laptops often estimate location from Wi-Fi or an internet connection
+          and can place you in the wrong city. Most have no GPS. For a more
+          accurate position, share from your phone with precise location
+          enabled. The accuracy radius is the device's estimate, not a
+          guarantee.
+        </p>
       </details>
       {error && (
         <p className="error" role="alert">
@@ -419,6 +435,14 @@ export function LocationPanel() {
                 ? `Last saved ${ago(data.own.fix.capturedAt)} · ${displayTime(data.own.fix.capturedAt)}`
                 : "Waiting for a location fix."}
             </p>
+            {data.own.fix && (
+              <p role="status">
+                Device-reported accuracy: about{" "}
+                {accuracyLabel(data.own.fix.accuracy)}.
+                {data.own.fix.accuracy > 100 &&
+                  " Approximate area only. Try a phone with precise location enabled."}
+              </p>
+            )}
             <button disabled={busy} onClick={() => void c.stop()}>
               Stop sharing & remove my point
             </button>
@@ -488,7 +512,9 @@ export function LocationPanel() {
                       ? "Waiting for location"
                       : Date.now() - p.fix.capturedAt > 120000
                         ? "Last known · may be out of date"
-                        : "Recently updated"}
+                        : p.fix.accuracy > 100
+                          ? "Approximate area · recently updated"
+                          : "Recently updated"}
                 </span>
               </div>
               {p.fix && (
@@ -498,9 +524,16 @@ export function LocationPanel() {
                     {displayTime(p.fix.capturedAt)}
                   </p>
                   <p>
-                    Accuracy: about {Math.round(p.fix.accuracy)} metres. This is
-                    an approximate device position.
+                    Accuracy: about {accuracyLabel(p.fix.accuracy)}. This is an
+                    approximate device position.
                   </p>
+                  {p.fix.accuracy > 100 && (
+                    <p className="note">
+                      Low accuracy — do not treat the pin as an exact address. A
+                      laptop may report a different city; a phone with precise
+                      location can give a better fix.
+                    </p>
+                  )}
                   <p className="location-coordinates">
                     {p.fix.latitude.toFixed(5)}, {p.fix.longitude.toFixed(5)}
                   </p>

@@ -17,7 +17,8 @@
     "seed:cloud": "node --env-file-if-exists=.env.local --import tsx scripts/seed-cloud.ts",
     "test:hub": "node --import tsx scripts/hub-integration.ts && node --import tsx scripts/hub-integration.ts --cloud",
     "test:location:domain": "node --import tsx scripts/location-domain-checks.ts",
-    "test:settings": "node --import tsx scripts/location-domain-checks.ts && node --import tsx scripts/settings-location-integration.ts && node --import tsx scripts/settings-location-integration.ts --cloud"
+    "test:settings": "node --import tsx scripts/location-domain-checks.ts && node --import tsx scripts/settings-location-integration.ts && node --import tsx scripts/settings-location-integration.ts --cloud",
+    "test:finance": "node --import tsx scripts/finance-domain-checks.ts && node --import tsx scripts/finance-integration.ts && node --import tsx scripts/finance-integration.ts --cloud"
   },
   "repository": {
     "type": "git",

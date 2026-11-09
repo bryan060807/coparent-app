@@ -391,7 +391,7 @@ try {
     await a.setGeolocation({
       latitude: 41.8827,
       longitude: -87.6233,
-      accuracy: 25,
+      accuracy: 50000,
     });
     const geoConsent =
       "I want to share this device's location with the household's parents for the selected time.";
@@ -412,12 +412,37 @@ try {
       .toBe(true);
     location = await get(a, "/api/location");
     assert.equal(location.own.fix.latitude, 41.8827);
+    assert.equal(location.own.fix.accuracy, 50000);
+    await expect(
+      pa.getByText("Approximate area only.", { exact: false }),
+    ).toBeVisible();
+    await a.setGeolocation({
+      latitude: 41.8828,
+      longitude: -87.6234,
+      accuracy: 10,
+    });
+    await expect
+      .poll(async () => (await get(a, "/api/location")).own.fix.accuracy, {
+        timeout: 5000,
+      })
+      .toBe(10);
+    await a.setGeolocation({
+      latitude: 38.6,
+      longitude: -90.2,
+      accuracy: 50000,
+    });
+    assert.equal(
+      (await get(a, "/api/location")).own.fix.accuracy,
+      10,
+      "A recent precise point resists a coarse fallback",
+    );
+
     const parentGrant = location.own.grant;
     const other = await get(b, "/api/location");
     assert.equal(other.own, null);
     assert.equal(
       other.people.find((p: any) => p.id === meA.user.id).fix.longitude,
-      -87.6233,
+      -87.6234,
     );
     assert.ok(!JSON.stringify(other.people).includes("grant"));
     const third = await get(c, "/api/location");
