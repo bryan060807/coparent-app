@@ -1,3 +1,4 @@
+import { cleanLocations, mutateLocation, locationView } from "./location";
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes, randomUUID } from "node:crypto";
 import { cloudEnabled, trustedOrigin } from "./cloud/config";
@@ -13,6 +14,7 @@ import {
   balanceFor,
 } from "./hub-domain";
 import {
+  defaultAppearance,
   emptyHub,
   type HubActor,
   type HubState,
@@ -63,8 +65,19 @@ async function service(
   return data;
 }
 async function snapshot(household: string): Promise<Snapshot> {
-  const row = await service("read", { household });
-  return { ...row, data: row.data ?? emptyHub() };
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const row = await service("read", { household }),
+      data: HubState = row.data ?? emptyHub();
+    if (!cleanLocations(data)) return { ...row, data };
+    const saved = await service("store", {
+      household,
+      version: row.version,
+      data,
+      earned: row.awards.filter((a: Award) => a.active).length,
+    });
+    if (saved) return { ...row, data, version: row.version + 1 };
+  }
+  throw new HubError("Could not refresh sharing status. Try again.", 409);
 }
 async function childActor(req: NextRequest): Promise<HubActor> {
   const value = req.cookies.get(COOKIE)?.value;
@@ -155,6 +168,13 @@ async function view(
     recognitions: d.recognitions,
     redemptions: d.redemptions,
     profile,
+    childSettings: parent
+      ? (d.childSettings ?? {
+          appearance: { ...defaultAppearance },
+          locationAllowed: false,
+          version: 0,
+        })
+      : undefined,
     child:
       parent && d.child
         ? {
@@ -292,7 +312,8 @@ async function photoFields(
 export async function hubHandle(req: NextRequest): Promise<Response | null> {
   const parts = req.nextUrl.pathname.split("/").slice(2),
     childCookie = req.cookies.has(COOKIE);
-  if (!["hub", "child"].includes(parts[0]) && !childCookie) return null;
+  if (!["hub", "child", "location"].includes(parts[0]) && !childCookie)
+    return null;
   let ctx: ReturnType<typeof cloudClient> | null = null;
   try {
     if (cloudEnabled()) ctx = cloudClient(req);
@@ -394,6 +415,41 @@ export async function hubHandle(req: NextRequest): Promise<Response | null> {
           members: [],
         }),
       );
+    }
+    if (parts[0] === "location") {
+      if (parts.length !== 1) throw new HubError("Not found.", 404);
+      if (req.method === "GET") {
+        const s = await snapshot(actor.household);
+        return finish(
+          json(locationView(s.data, actor, s.members, s.childName)),
+        );
+      }
+      const body = await readJson(req, 8192);
+      if (body.viewer !== actor.id)
+        throw new HubError(
+          "The signed-in account changed. Reload sharing status before trying again.",
+          409,
+        );
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const s = await snapshot(actor.household),
+          next = structuredClone(s.data);
+        if (actor.role === "child") await childActor(req);
+        if (!mutateLocation(next, actor, body))
+          return finish(
+            json(locationView(s.data, actor, s.members, s.childName)),
+          );
+        const saved = await service("store", {
+          household: actor.household,
+          version: s.version,
+          data: next,
+          earned: s.awards.filter((x) => x.active).length,
+        });
+        if (saved)
+          return finish(
+            json(locationView(next, actor, s.members, s.childName)),
+          );
+      }
+      throw new HubError("Sharing changed while saving. Please retry.", 409);
     }
     if (parts[0] !== "hub")
       throw new HubError("A parent needs to sign in to do that.", 403);

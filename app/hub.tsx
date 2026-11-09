@@ -13,6 +13,17 @@ import {
   type Photo,
 } from "../lib/hub-types";
 import { Brand } from "./ui";
+import AppSettings from "./settings";
+import {
+  applyAppearance,
+  resetAppearance,
+  displayTime,
+} from "../lib/appearance";
+import {
+  LocationPanel,
+  SharingStatus,
+  FamilyLocationProvider,
+} from "./location";
 export type HubSection =
   | "gallery"
   | "resources"
@@ -21,7 +32,8 @@ export type HubSection =
   | "contacts"
   | "rewards"
   | "profile"
-  | "settings";
+  | "settings"
+  | "location";
 export const hubSections: { id: HubSection; label: string; emoji: string }[] = [
   { id: "gallery", label: "Photo gallery", emoji: "▧" },
   { id: "resources", label: "Resources", emoji: "📚" },
@@ -31,15 +43,10 @@ export const hubSections: { id: HubSection; label: string; emoji: string }[] = [
   { id: "rewards", label: "Stars & rewards", emoji: "⭐" },
   { id: "profile", label: "My profile", emoji: "🙂" },
   { id: "settings", label: "App settings", emoji: "🎨" },
+  { id: "location", label: "Family map", emoji: "📍" },
 ];
 type Editing = { kind: string; item?: any };
-const when = (at: string) =>
-  new Date(at).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+const when = displayTime;
 function useHub(viewer: string) {
   const [data, setData] = useState<HubView | null>(null),
     [error, setError] = useState(""),
@@ -103,26 +110,23 @@ function useHub(viewer: string) {
     loadHistory: () => setAllMessages(true),
   };
 }
-function applyAppearance(p: Appearance) {
-  const root = document.documentElement;
-  root.dataset.theme = p.theme;
-  root.dataset.font = p.font;
-  root.dataset.background = p.background.startsWith("photo:")
-    ? "photo"
-    : p.background;
-  root.dataset.large = String(p.largeText);
-  root.dataset.motion = p.reduceMotion ? "reduced" : "normal";
-  document.body.style.backgroundImage = p.background.startsWith("photo:")
-    ? `linear-gradient(#ffffffdf,#ffffffdf),url("/api/hub/photos/${p.background.slice(6)}")`
-    : "";
-}
-function resetAppearance() {
-  applyAppearance(defaultAppearance);
-}
-export function ParentAppearance({ viewer }: { viewer: string }) {
+export function ParentAppearance({
+  viewer,
+  onStartPage,
+}: {
+  viewer: string;
+  onStartPage?: (page: string) => void;
+}) {
+  const started = useRef(false);
   const { data } = useHub(viewer);
   useEffect(() => {
-    if (data) applyAppearance(data.profile.appearance);
+    if (data) {
+      applyAppearance(data.profile.appearance);
+      if (!started.current) {
+        started.current = true;
+        onStartPage?.(data.profile.appearance.startPage ?? "today");
+      }
+    }
   }, [data]);
   useEffect(() => () => resetAppearance(), []);
   return null;
@@ -391,6 +395,9 @@ export default function HubPanel({
         </p>
       </section>
     );
+  if (section === "settings")
+    return <AppSettings data={data} save={hub.save} />;
+  if (section === "location") return <LocationPanel />;
   const close = () => {
     setEditing(null);
     setNotice("Saved for your team.");
@@ -776,7 +783,7 @@ export default function HubPanel({
           </ul>
         </>
       )}
-      {(section === "profile" || section === "settings") && (
+      {section === "profile" && (
         <>
           <p>
             {section === "profile"
@@ -789,9 +796,7 @@ export default function HubPanel({
             </span>
             <h2>{data.profile.name}</h2>
             {data.profile.about && <p>{data.profile.about}</p>}
-            <button onClick={() => open("profile")}>
-              {section === "profile" ? "Edit my profile" : "Change appearance"}
-            </button>
+            <button onClick={() => open("profile")}>Edit my profile</button>
           </article>
         </>
       )}
@@ -836,15 +841,23 @@ export function ChildSpace({
   const [tab, setTab] = useState("today"),
     [busy, setBusy] = useState(false),
     [actionError, setActionError] = useState(""),
-    [editing, setEditing] = useState(false);
+    [editing, setEditing] = useState<"profile" | "settings" | null>(null);
   const rewardKeys = useRef<Record<string, string>>({});
+  const initialTab = useRef(false);
   useEffect(() => {
-    if (data) applyAppearance(data.profile.appearance);
+    if (data) {
+      applyAppearance(data.profile.appearance);
+      if (!initialTab.current) {
+        initialTab.current = true;
+        setTab(data.profile.appearance.startPage ?? "today");
+      }
+    }
   }, [data]);
   useEffect(() => () => resetAppearance(), []);
   if (!data)
     return (
       <main>
+        <SharingStatus />
         <p role={error ? "alert" : "status"}>
           {error || "Opening your space…"}
         </p>
@@ -861,15 +874,27 @@ export function ChildSpace({
   if (editing)
     return (
       <main>
-        <HubEditor
-          editing={{ kind: "profile" }}
-          data={data}
-          viewer={user.id}
-          save={hub.save}
-          onDone={() => setEditing(false)}
-          onCancel={() => setEditing(false)}
-          onLatest={() => {}}
-        />
+        <SharingStatus />
+        {editing === "settings" ? (
+          <>
+            <button className="text back" onClick={() => setEditing(null)}>
+              ← Back to my space
+            </button>
+            <AppSettings data={data} save={hub.save} />
+          </>
+        ) : (
+          <>
+            <HubEditor
+              editing={{ kind: "profile" }}
+              data={data}
+              viewer={user.id}
+              save={hub.save}
+              onDone={() => setEditing(null)}
+              onCancel={() => setEditing(null)}
+              onLatest={() => {}}
+            />
+          </>
+        )}
       </main>
     );
   return (
@@ -895,6 +920,7 @@ export function ChildSpace({
           Sign out
         </button>
       </header>
+      <SharingStatus />
       <div className="child-hero">
         <p className="section-kicker">Your team is cheering you on</p>
         <h1>
@@ -912,6 +938,7 @@ export function ChildSpace({
           ["gallery", "Photos"],
           ["resources", "Discover"],
           ["contacts", "My contacts"],
+          ["location", "My location"],
         ].map(([id, label]) => (
           <button
             className={tab === id ? "active" : "secondary"}
@@ -927,6 +954,7 @@ export function ChildSpace({
           {actionError || error}
         </p>
       )}
+      {tab === "location" && <LocationPanel />}
       {tab === "today" && (
         <>
           <h2>My day</h2>
@@ -951,8 +979,11 @@ export function ChildSpace({
           </ul>
           <h2>Look what you did!</h2>
           <RecognitionList data={data} />
-          <button className="secondary" onClick={() => setEditing(true)}>
+          <button className="secondary" onClick={() => setEditing("settings")}>
             Make this space mine 🎨
+          </button>
+          <button className="text" onClick={() => setEditing("profile")}>
+            My profile
           </button>
         </>
       )}
@@ -1092,15 +1123,13 @@ function HubEditor({
     profile: data.profile.version,
     child: data.child?.version ?? "",
   });
-  const [font, setFont] = useState(data.profile.appearance.font),
-    [theme, setTheme] = useState(data.profile.appearance.theme);
   const label =
     kind === "childAccount"
       ? "Child login"
       : kind === "recognition"
         ? "Celebrate a win"
         : kind === "profile"
-          ? "Profile & appearance"
+          ? "My profile"
           : kind === "exercise"
             ? "Parenting together"
             : `${item ? "Edit" : "Add"} ${kind === "goal" ? "reward" : kind}`;
@@ -1193,13 +1222,6 @@ function HubEditor({
             }
             if (kind === "profile") {
               b.version = baseline.current.profile;
-              b.appearance = {
-                theme: form.get("theme"),
-                font: form.get("font"),
-                background: form.get("background"),
-                largeText: form.has("largeText"),
-                reduceMotion: form.has("reduceMotion"),
-              };
             }
             if (kind === "photo" && !item) {
               const file = form.get("file");
@@ -1449,71 +1471,6 @@ function HubEditor({
               </select>
             </label>
             {area("about", "A little about me", 300, data.profile.about)}
-            <fieldset>
-              <legend>Colors</legend>
-              <div className="theme-swatches">
-                {[
-                  ["forest", "Herb garden"],
-                  ["ocean", "Blue skies"],
-                  ["sunset", "Peachy days"],
-                  ["berry", "Berry bright"],
-                ].map(([value, label]) => (
-                  <label data-swatch={value} key={value}>
-                    <input
-                      type="radio"
-                      name="theme"
-                      value={value}
-                      checked={theme === value}
-                      onChange={() => setTheme(value as Appearance["theme"])}
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-            <label>
-              Font
-              <select
-                aria-label="Font"
-                name="font"
-                value={font}
-                onChange={(e) => setFont(e.target.value as Appearance["font"])}
-              >
-                <option value="friendly">Nunito · playful & rounded</option>
-                <option value="simple">DM Sans · simple & clear</option>
-                <option value="editorial">Newsreader · prep notebook</option>
-              </select>
-            </label>
-            <p className="font-preview" data-preview={font}>
-              Little things. Big growing. Aa 123
-            </p>
-            <label>
-              Background
-              <select
-                aria-label="Background"
-                name="background"
-                defaultValue={data.profile.appearance.background}
-              >
-                <option value="plain">Plain paper</option>
-                <option value="confetti">Little confetti</option>
-                <option value="waves">Gentle waves</option>
-                {data.photos.map((p) => (
-                  <option key={p.id} value={"photo:" + p.id}>
-                    {p.caption || "A gallery photo"}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {check(
-              "largeText",
-              "Larger text",
-              data.profile.appearance.largeText,
-            )}
-            {check(
-              "reduceMotion",
-              "Reduce motion",
-              data.profile.appearance.reduceMotion,
-            )}
           </>
         )}
         {error && (
@@ -1526,8 +1483,6 @@ function HubEditor({
               className="secondary"
               onClick={() => {
                 onLatest();
-                setFont(data.profile.appearance.font);
-                setTheme(data.profile.appearance.theme);
                 baseline.current = {
                   profile: data.profile.version,
                   child: data.child?.version ?? "",

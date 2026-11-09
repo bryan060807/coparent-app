@@ -1,4 +1,5 @@
 "use client";
+import { displayDateTime, clockOptions } from "../lib/appearance";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   FamilyKind,
@@ -885,7 +886,7 @@ export default function FamilySection({
                   <strong>
                     {actionLabels[e.action] || e.action} by {e.actor}
                   </strong>
-                  <time dateTime={e.at}>{new Date(e.at).toLocaleString()}</time>
+                  <time dateTime={e.at}>{displayDateTime(e.at)}</time>
                   {e.snapshot.day && (
                     <p>
                       Checklist day: {date(e.snapshot.day)}

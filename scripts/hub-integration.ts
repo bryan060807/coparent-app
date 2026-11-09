@@ -480,11 +480,9 @@ try {
   assert.equal((await kid.request.get(base + photoUrl)).status(), 200);
   const kidProfile = (await get(kid)).profile;
   await save(kid, {
-    op: "profile",
-    name: "Ignored",
-    about: "",
-    avatar: "🌟",
-    version: kidProfile.version,
+    op: "settings",
+    inheritChildAppearance: false,
+    version: kidProfile.settingsVersion ?? 0,
     appearance: { ...kidProfile.appearance, background: "photo:" + photo.id },
   });
   currentPhoto = (await get(a)).photos[0];
@@ -537,12 +535,13 @@ try {
     pk.getByText("🎉 Your grownup said yes!", { exact: true }),
   ).toBeVisible({ timeout: 10000 });
   await open(pa, "App settings");
-  await pa.getByRole("button", { name: "Change appearance" }).click();
   await pa.getByLabel("Blue skies", { exact: true }).check();
   await pa.getByLabel("Font", { exact: true }).selectOption("simple");
   await pa.getByLabel("Background", { exact: true }).selectOption("confetti");
-  await pa.getByLabel("Larger text").check();
-  await pa.getByRole("button", { name: "Save", exact: true }).click();
+  await pa.getByLabel("Text size", { exact: true }).selectOption("large");
+  await pa
+    .getByRole("button", { name: "Save app settings", exact: true })
+    .click();
   await expect(pa.locator("html")).toHaveAttribute("data-theme", "ocean");
   await expect(pb.locator("html")).toHaveAttribute("data-theme", "forest");
   await pa.reload();

@@ -1,4 +1,5 @@
 "use client";
+import { displayDateTime, clockOptions } from "../lib/appearance";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Pickup, PickupDetail } from "../lib/pickup-types";
 type Member = { id: string; name: string };
@@ -8,6 +9,7 @@ const key = () =>
   ).join("");
 const when = (value: string) =>
   new Date(value).toLocaleString(undefined, {
+    ...clockOptions(),
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -80,6 +82,7 @@ export function NextPickup({ onOpen }: { onOpen: () => void }) {
               </span>
               <span className="pickup-clock">
                 {new Date(next.scheduled_at).toLocaleTimeString(undefined, {
+                  ...clockOptions(),
                   hour: "numeric",
                   minute: "2-digit",
                   timeZoneName: "short",
@@ -513,7 +516,7 @@ export default function PickupPlanner({
                           : "Cancelled"}{" "}
                     by {e.actor}
                   </strong>
-                  <time dateTime={e.at}>{new Date(e.at).toLocaleString()}</time>
+                  <time dateTime={e.at}>{displayDateTime(e.at)}</time>
                   <p>
                     {when(e.snapshot.scheduled_at)} · {e.snapshot.location}
                     <br />

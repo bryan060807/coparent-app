@@ -1,4 +1,5 @@
 "use client";
+import { displayDateTime, clockOptions } from "../lib/appearance";
 import { useState } from "react";
 import { teamName, type Team } from "../lib/team-types";
 const key = () =>
@@ -142,8 +143,7 @@ export default function TeamSettings({
       )}
       {team.updatedBy && team.updatedAt && (
         <p className="muted">
-          Last named by {team.updatedBy} ·{" "}
-          {new Date(team.updatedAt).toLocaleString()}
+          Last named by {team.updatedBy} · {displayDateTime(team.updatedAt)}
         </p>
       )}
       <section>
@@ -171,9 +171,8 @@ export default function TeamSettings({
                   spellCheck={false}
                 />
                 <p className="muted">
-                  Valid once, until{" "}
-                  {new Date(invitation.expires).toLocaleString()}. Share it
-                  privately with the other parent.
+                  Valid once, until {displayDateTime(invitation.expires)}. Share
+                  it privately with the other parent.
                 </p>
                 <p>
                   They choose{" "}

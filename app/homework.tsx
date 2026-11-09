@@ -1,4 +1,5 @@
 "use client";
+import { displayDateTime, clockOptions } from "../lib/appearance";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   Homework,
@@ -469,9 +470,7 @@ export default function HomeworkPlanner({ initialId }: { initialId?: string }) {
                   <strong>
                     {eventLabel[event.action]} by {event.actor}
                   </strong>
-                  <time dateTime={event.at}>
-                    {new Date(event.at).toLocaleString()}
-                  </time>
+                  <time dateTime={event.at}>{displayDateTime(event.at)}</time>
                   {event.action === "created" || event.action === "edited" ? (
                     <p>
                       {event.snapshot.title} · Due {date(event.snapshot.due)}

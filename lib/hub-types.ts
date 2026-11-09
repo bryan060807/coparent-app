@@ -1,9 +1,26 @@
 export type Appearance = {
-  theme: "forest" | "ocean" | "sunset" | "berry";
-  font: "friendly" | "simple" | "editorial";
+  theme:
+    | "forest"
+    | "ocean"
+    | "sunset"
+    | "berry"
+    | "midnight"
+    | "sand"
+    | "mint"
+    | "rose";
+  font:
+    "friendly" | "simple" | "editorial" | "playful" | "bookish" | "accessible";
   background: "plain" | "confetti" | "waves" | string;
   largeText: boolean;
   reduceMotion: boolean;
+  textSize?: "small" | "standard" | "large" | "extra";
+  spacing?: "comfortable" | "compact";
+  cardStyle?: "soft" | "outlined" | "flat";
+  photoOverlay?: number;
+  highContrast?: boolean;
+  dashboardSummaries?: boolean;
+  timeFormat?: "system" | "12h" | "24h";
+  startPage?: string;
 };
 export const defaultAppearance: Appearance = {
   theme: "forest",
@@ -65,6 +82,8 @@ export type Profile = {
   avatar: string;
   appearance: Appearance;
   version: number;
+  settingsVersion?: number;
+  inheritChildAppearance?: boolean;
 };
 export type ChildAccount = {
   id: string;
@@ -85,6 +104,43 @@ export type HubState = {
   profiles: Record<string, Profile>;
   child?: ChildAccount;
   requests: Record<string, string>;
+  childSettings?: {
+    appearance: Appearance;
+    locationAllowed: boolean;
+    version: number;
+  };
+  locations?: Record<string, LocationConsent>;
+  locationVersions?: Record<string, number>;
+};
+export type LocationFix = {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  capturedAt: number;
+};
+export type LocationConsent = {
+  grant: string;
+  expires: number;
+  startedAt: number;
+  credential?: string;
+  fix?: LocationFix;
+};
+export type FamilyLocation = {
+  id: string;
+  name: string;
+  role: "parent" | "child";
+  sharing: boolean;
+  expires?: number;
+  fix?: LocationFix;
+};
+export type LocationView = {
+  viewer: string;
+  role: "parent" | "child";
+  allowed: boolean;
+  controlVersion: number;
+  own: LocationConsent | null;
+  people: FamilyLocation[];
+  serverTime: number;
 };
 export type Award = {
   record: string;
@@ -114,6 +170,11 @@ export type HubView = {
   redemptions: Redemption[];
   profile: Profile;
   child?: { username: string; enabled: boolean; version: string };
+  childSettings?: {
+    appearance: Appearance;
+    locationAllowed: boolean;
+    version: number;
+  };
   awards: Award[];
   balance: number;
   members: { id: string; name: string }[];
